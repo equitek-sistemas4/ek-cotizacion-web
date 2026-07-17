@@ -1,7 +1,13 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getChatById, getChatMessages, sendChatMessage, getChatMemberByCode } from '@/services/chats'
+import {
+  getChatById,
+  getChatMessages,
+  sendChatMessage,
+  getChatMemberByCode,
+} from '@/services/chats'
+import infoClientQuotation from '@/components/infoClientQuotation.vue'
 
 const route = useRoute()
 
@@ -21,6 +27,8 @@ const messageSending = ref(false)
 const sendMessageError = ref('')
 const messagesPanel = ref(null)
 const chatSocket = ref(null)
+const chatOpen = ref(false)
+const quotationId = ref(null)
 let reconnectTimer = null
 
 const chatTitle = computed(() => chat.value?.name || 'Chat')
@@ -29,8 +37,29 @@ const contactName = computed(() => {
   const members = chat.value?.members ?? []
   const member = members.find((item) => String(item.contact_id) === String(contactId.value))
 
-  return member?.contact?.name || member?.contact_name || member?.contact?.display_name || 'Contacto'
+  return (
+    member?.contact?.name || member?.contact_name || member?.contact?.display_name || 'Contacto'
+  )
 })
+
+const getQuotationId = (...sources) => {
+  for (const source of sources) {
+    const quotation = source?.quotation ?? source?.cotizacion
+    const id =
+      source?.quotation_id ??
+      source?.quotationId ??
+      source?.quote_id ??
+      source?.idcoti ??
+      quotation?.idcoti ??
+      quotation?.id
+
+    if (id !== null && id !== undefined) {
+      return id
+    }
+  }
+
+  return null
+}
 
 const scrollMessagesToBottom = async () => {
   await nextTick()
@@ -248,10 +277,13 @@ const loadChat = async () => {
     ])
 
     chat.value = chatDetail
+    quotationId.value = getQuotationId(chatMember, chatDetail)
     messages.value = Array.isArray(messagesData?.messages)
       ? messagesData.messages.map(normalizeMessage)
       : []
-    connectChatWebSocket()
+    if (chatOpen.value) {
+      connectChatWebSocket()
+    }
     shouldScrollToBottom = true
   } catch (error) {
     errorMessage.value = error.message || 'Ocurrio un error al cargar el chat.'
@@ -325,6 +357,16 @@ onMounted(() => {
   loadChat()
 })
 
+watch(chatOpen, (isOpen) => {
+  if (isOpen) {
+    connectChatWebSocket()
+    scrollMessagesToBottom()
+    return
+  }
+
+  closeChatWebSocket()
+})
+
 onBeforeUnmount(() => {
   closeChatWebSocket()
 })
@@ -332,138 +374,180 @@ onBeforeUnmount(() => {
 
 <template>
   <v-container class="contact-chat-view" fluid>
-    <section class="chat-content">
-      <header class="conversation-header">
-        <div class="conversation-user">
-          <v-avatar color="primary" size="44">
-            <span class="avatar-text">{{ contactName.charAt(0) }}</span>
-          </v-avatar>
+    <info-client-quotation
+      :chat-title="chatTitle"
+      :contact-name="contactName"
+      :error-message="errorMessage"
+      :loading="loading"
+      :quotation-id="quotationId"
+      :access-token="token"
+    />
 
-          <div>
-            <h1>{{ chatTitle }}</h1>
-            <p>{{ contactName }}</p>
-          </div>
-        </div>
+    <v-btn
+      aria-label="Abrir chat"
+      class="chat-fab"
+      color="primary"
+      icon="mdi-message-text"
+      size="large"
+      @click="chatOpen = true"
+    />
 
-        <v-btn color="primary" icon="mdi-dots-vertical" size="small" variant="text" />
-      </header>
+    <v-navigation-drawer
+      v-model="chatOpen"
+      class="chat-drawer"
+      location="right"
+      temporary
+      width="560"
+    >
+      <section class="chat-content">
+        <header class="conversation-header">
+          <div class="conversation-user">
+            <v-avatar color="primary" size="44">
+              <span class="avatar-text">{{ contactName.charAt(0) }}</span>
+            </v-avatar>
 
-      <div ref="messagesPanel" class="messages-panel">
-        <div v-if="loading" class="chat-state">
-          <v-progress-circular color="primary" indeterminate size="30" />
-          <span>Cargando chat...</span>
-        </div>
-
-        <div v-else-if="errorMessage" class="chat-state chat-state-error">
-          <v-icon color="error" icon="mdi-alert-circle-outline" size="34" />
-          <span>{{ errorMessage }}</span>
-        </div>
-
-        <div v-else-if="!messages.length" class="chat-state">
-          <v-icon color="primary" icon="mdi-message-text-outline" size="34" />
-          <span>No hay mensajes en esta conversacion.</span>
-        </div>
-
-        <template v-else>
-          <div
-            v-for="item in messages"
-            :key="item.id"
-            class="message-row"
-            :class="{ 'message-row-sent': item.fromMe }"
-          >
-            <div class="message-bubble">
-              <small>{{ item.senderName }}</small>
-              <p>{{ item.text }}</p>
-              <div v-if="item.files.length" class="message-attachments">
-                <div v-for="file in item.files" :key="`${file.name}-${file.url}`" class="message-attachment">
-                  <img
-                    v-if="file.isImage && file.url"
-                    :alt="file.name"
-                    class="attachment-image-preview"
-                    :src="file.url"
-                  />
-                  <v-icon v-else color="error" icon="mdi-file-pdf-box" size="42" />
-
-                  <div class="attachment-details">
-                    <!--<span>{{ file.name }}</span>-->
-                    <v-btn
-                      aria-label="Descargar archivo"
-                      color="gray"
-                      :disabled="!file.url"
-                      :download="file.name"
-                      :href="file.url || undefined"
-                      icon="mdi-download"
-                      size="small"
-                      target="_blank"
-                      variant="tonal"
-                    >
-                    </v-btn>
-                  </div>
-                </div>
-              </div>
-              <span>{{ item.time }}</span>
+            <div>
+              <h1>{{ chatTitle }}</h1>
+              <p>{{ contactName }}</p>
             </div>
           </div>
-        </template>
-      </div>
 
-      <v-form class="message-composer" @submit.prevent="sendMessage">
-        <span v-if="sendMessageError" class="send-message-error">{{ sendMessageError }}</span>
-
-        <div v-if="selectedFile" class="attachment-preview">
-          <v-icon :icon="selectedFile.type === 'application/pdf' ? 'mdi-file-pdf-box' : 'mdi-file-image-outline'" />
-          <span>{{ selectedFile.name }}</span>
           <v-btn
-            aria-label="Quitar archivo adjunto"
-            density="compact"
+            aria-label="Cerrar chat"
             icon="mdi-close"
             size="small"
             variant="text"
-            @click="clearAttachment"
+            @click="chatOpen = false"
           />
+        </header>
+
+        <div ref="messagesPanel" class="messages-panel">
+          <div v-if="loading" class="chat-state">
+            <v-progress-circular color="primary" indeterminate size="30" />
+            <span>Cargando chat...</span>
+          </div>
+
+          <div v-else-if="errorMessage" class="chat-state chat-state-error">
+            <v-icon color="error" icon="mdi-alert-circle-outline" size="34" />
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <div v-else-if="!messages.length" class="chat-state">
+            <v-icon color="primary" icon="mdi-message-text-outline" size="34" />
+            <span>No hay mensajes en esta conversacion.</span>
+          </div>
+
+          <template v-else>
+            <div
+              v-for="item in messages"
+              :key="item.id"
+              class="message-row"
+              :class="{ 'message-row-sent': item.fromMe }"
+            >
+              <div class="message-bubble">
+                <small>{{ item.senderName }}</small>
+                <p>{{ item.text }}</p>
+                <div v-if="item.files.length" class="message-attachments">
+                  <div
+                    v-for="file in item.files"
+                    :key="`${file.name}-${file.url}`"
+                    class="message-attachment"
+                  >
+                    <img
+                      v-if="file.isImage && file.url"
+                      :alt="file.name"
+                      class="attachment-image-preview"
+                      :src="file.url"
+                    />
+                    <v-icon v-else color="error" icon="mdi-file-pdf-box" size="42" />
+
+                    <div class="attachment-details">
+                      <!--<span>{{ file.name }}</span>-->
+                      <v-btn
+                        aria-label="Descargar archivo"
+                        color="gray"
+                        :disabled="!file.url"
+                        :download="file.name"
+                        :href="file.url || undefined"
+                        icon="mdi-download"
+                        size="small"
+                        target="_blank"
+                        variant="tonal"
+                      >
+                      </v-btn>
+                    </div>
+                  </div>
+                </div>
+                <span>{{ item.time }}</span>
+              </div>
+            </div>
+          </template>
         </div>
 
-        <input
-          ref="fileInput"
-          accept="application/pdf,image/*"
-          class="attachment-input"
-          :disabled="messageSending"
-          type="file"
-          @change="selectAttachment"
-        />
+        <v-form class="message-composer" @submit.prevent="sendMessage">
+          <span v-if="sendMessageError" class="send-message-error">{{ sendMessageError }}</span>
 
-        <v-btn
-          aria-label="Adjuntar archivo"
-          color="primary"
-          icon="mdi-paperclip"
-          :disabled="messageSending"
-          size="large"
-          variant="text"
-          @click="fileInput?.click()"
-        />
+          <div v-if="selectedFile" class="attachment-preview">
+            <v-icon
+              :icon="
+                selectedFile.type === 'application/pdf'
+                  ? 'mdi-file-pdf-box'
+                  : 'mdi-file-image-outline'
+              "
+            />
+            <span>{{ selectedFile.name }}</span>
+            <v-btn
+              aria-label="Quitar archivo adjunto"
+              density="compact"
+              icon="mdi-close"
+              size="small"
+              variant="text"
+              @click="clearAttachment"
+            />
+          </div>
 
-        <v-text-field
-          v-model="message"
-          autocomplete="off"
-          color="primary"
-          density="comfortable"
-          :disabled="messageSending"
-          hide-details
-          placeholder="Escribe un mensaje"
-          prepend-inner-icon="mdi-message-outline"
-          variant="outlined"
-        />
+          <input
+            ref="fileInput"
+            accept="application/pdf,image/*"
+            class="attachment-input"
+            :disabled="messageSending"
+            type="file"
+            @change="selectAttachment"
+          />
 
-        <v-btn
-          color="primary"
-          icon="mdi-send"
-          :loading="messageSending"
-          size="large"
-          type="submit"
-          variant="flat"
-        />
-      </v-form>
-    </section>
+          <v-btn
+            aria-label="Adjuntar archivo"
+            color="primary"
+            icon="mdi-paperclip"
+            :disabled="messageSending"
+            size="large"
+            variant="text"
+            @click="fileInput?.click()"
+          />
+
+          <v-text-field
+            v-model="message"
+            autocomplete="off"
+            color="primary"
+            density="comfortable"
+            :disabled="messageSending"
+            hide-details
+            placeholder="Escribe un mensaje"
+            prepend-inner-icon="mdi-message-outline"
+            variant="outlined"
+          />
+
+          <v-btn
+            color="primary"
+            icon="mdi-send"
+            :loading="messageSending"
+            size="large"
+            type="submit"
+            variant="flat"
+          />
+        </v-form>
+      </section>
+    </v-navigation-drawer>
   </v-container>
 </template>
 
@@ -472,17 +556,30 @@ onBeforeUnmount(() => {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  display: grid;
-  place-items: center;
   padding: 24px;
   background: rgb(var(--v-theme-appBackground));
+}
+
+.chat-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10;
+}
+
+.chat-drawer :deep(.v-navigation-drawer__content) {
+  height: 100%;
+}
+
+.chat-drawer {
+  width: min(100vw, 560px) !important;
 }
 
 .chat-content {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  width: min(100%, 880px);
-  height: calc(100vh - 48px);
+  width: 100%;
+  height: 100%;
   min-width: 0;
   overflow: hidden;
   border: 1px solid rgb(var(--v-theme-border));
@@ -518,7 +615,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-h1 {
+.conversation-user h1 {
   overflow: hidden;
   margin: 0;
   color: rgb(var(--v-theme-textPrimary));
@@ -698,11 +795,7 @@ h1 {
 
 @media (max-width: 700px) {
   .contact-chat-view {
-    height: 100svh;
-    height: 100dvh;
-    min-height: 0;
-    padding: 0;
-    overflow: hidden;
+    padding: 16px;
   }
 
   .chat-content {
@@ -728,7 +821,7 @@ h1 {
     min-width: 38px !important;
   }
 
-  h1 {
+  .conversation-user h1 {
     font-size: 1rem;
   }
 

@@ -10,6 +10,11 @@ const props = defineProps({
 const loading = ref(false)
 const errorMessage = ref('')
 const products = ref([])
+const presentationHeaders = [
+  { title: 'Presentación', key: 'presentacion' },
+  { title: 'Producción por minuto', key: 'produccion' },
+  { title: 'Comentario', key: 'comentario' },
+]
 
 const loadProducts = async () => {
   if (!props.quotationId) {
@@ -59,26 +64,22 @@ watch(() => [props.quotationId, props.accessToken], loadProducts, { immediate: t
         <h1>Productos</h1>
       </div>
 
-      <v-card v-for="product in products" :key="product.idprod" variant="outlined">
+      <v-card v-for="product in products" :key="product.idprod" variant="elevated">
         <v-card-title>{{ product.producto }}</v-card-title>
         <v-card-subtitle v-if="product.descripcion">{{ product.descripcion }}</v-card-subtitle>
         <v-card-text>
-          <v-table>
-            <thead>
-              <tr>
-                <th>Presentación</th>
-                <th>Producción por minuto</th>
-                <th>Comentario</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="presentation in product.Presentacion ?? []" :key="presentation.idpresen">
-                <td>{{ presentation.presentacion }} {{ presentation.medida }}</td>
-                <td>{{ presentation.produccion || 'Sin información' }}</td>
-                <td>{{ presentation.comentario || '—' }}</td>
-              </tr>
-            </tbody>
-          </v-table>
+          <v-data-table
+            :headers="presentationHeaders"
+            :items="(product.Presentacion ?? []).map((presentation) => ({
+              idpresen: presentation.idpresen,
+              presentacion: `${presentation.presentacion ?? ''} ${presentation.medida ?? ''}`.trim(),
+              produccion: presentation.produccion || 'Sin información',
+              comentario: presentation.comentario || '—',
+            }))"
+            :items-per-page="-1"
+            hide-default-footer
+            density="comfortable"
+          />
         </v-card-text>
       </v-card>
     </template>

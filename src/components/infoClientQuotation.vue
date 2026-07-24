@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import logoUrl from '@/assets/logo.png'
+import logoUrl from '@/assets/Equitek_Logo.webp'
 import conditionsQuotationComponent from '@/components/conditionsQuotationComponent.vue'
 import equipmentQuotationComponent from '@/components/equipmentQuotationComponent.vue'
 import infoQuotationComponent from '@/components/infoQuotationComponent.vue'
@@ -17,6 +17,7 @@ defineProps({
 })
 
 const activeTab = ref('inicio')
+const mobileTabsMenu = ref(false)
 </script>
 
 <template>
@@ -24,13 +25,12 @@ const activeTab = ref('inicio')
     <header class="client-quotation-header">
       <div class="header-brand">
         <img alt="Equitek" class="brand-logo" :src="logoUrl" />
-        <span>Equitek</span>
       </div>
 
       <v-tabs
         v-model="activeTab"
         class="quotation-tabs"
-        color="primary"
+        color="white"
         density="comfortable"
         show-arrows
       >
@@ -59,6 +59,53 @@ const activeTab = ref('inicio')
           Ligas
         </v-tab>
       </v-tabs>
+
+      <div class="mobile-tabs-menu">
+        <v-menu v-model="mobileTabsMenu" location="bottom end">
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              aria-label="Abrir secciones de la cotizaciÃ³n"
+              color="secondary"
+              icon="mdi-menu"
+              variant="text"
+            />
+          </template>
+
+          <v-list density="compact" min-width="190" nav>
+            <v-list-item
+              prepend-icon="mdi-home"
+              title="Inicio"
+              @click="activeTab = 'inicio'; mobileTabsMenu = false"
+            />
+            <v-list-item
+              prepend-icon="mdi-laptop"
+              title="Equipos"
+              @click="activeTab = 'equipos'; mobileTabsMenu = false"
+            />
+            <v-list-item
+              prepend-icon="mdi-file-check"
+              title="Productos"
+              @click="activeTab = 'productos'; mobileTabsMenu = false"
+            />
+            <v-list-item
+              prepend-icon="mdi-tag"
+              title="Precios"
+              @click="activeTab = 'precios'; mobileTabsMenu = false"
+            />
+            <v-list-item
+              prepend-icon="mdi-target"
+              title="Alcances"
+              @click="activeTab = 'alcances'; mobileTabsMenu = false"
+            />
+            <v-list-item
+              prepend-icon="mdi-link"
+              title="Ligas"
+              @click="activeTab = 'ligas'; mobileTabsMenu = false"
+            />
+          </v-list>
+        </v-menu>
+      </div>
     </header>
 
     <div class="client-portal-content">
@@ -69,25 +116,25 @@ const activeTab = ref('inicio')
       <info-quotation-component
         v-else-if="activeTab === 'inicio'"
         :access-token="accessToken"
-        :quotation-id="41083"
+        :quotation-id=quotationId
       />
 
       <conditions-quotation-component
         v-else-if="activeTab === 'condiciones'"
         :access-token="accessToken"
-        :quotation-id="41083"
+        :quotation-id=quotationId
       />
 
       <equipment-quotation-component
         v-else-if="activeTab === 'equipos'"
         :access-token="accessToken"
-        :quotation-id="41083"
+        :quotation-id=quotationId
       />
 
       <products-quotation-component
         v-else-if="activeTab === 'productos'"
         :access-token="accessToken"
-        :quotation-id="41083"
+        :quotation-id=quotationId
       />
 
       <links-quotation-component v-else-if="activeTab === 'ligas'" />
@@ -111,34 +158,54 @@ const activeTab = ref('inicio')
 }
 
 .client-quotation-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
   border-bottom: 1px solid rgb(var(--v-theme-border));
-  border-radius: 10px;
-  background: rgb(var(--v-theme-surface));
-}
-
-.header-brand,
-.quotation-tabs {
-  width: 100%;
+  background: rgb(var(--v-theme-primary));
 }
 
 .header-brand {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 24px 12px;
-  color: rgb(var(--v-theme-textPrimary));
+  padding: 0 24px;
+  color: rgb(var(--v-theme-surface));
   font-size: 1.2rem;
   font-weight: 700;
 }
 
 .brand-logo {
-  width: 36px;
-  height: 36px;
+  width: 180px;
+  height: 180px;
+  margin-block: -40px;
   object-fit: contain;
 }
 
 .quotation-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 48px;
+}
+
+.mobile-tabs-menu {
+  display: none;
+}
+
+.quotation-tabs :deep(.v-tab) {
+  color: rgb(var(--v-theme-surface)) !important;
+}
+
+.quotation-tabs :deep(.tab-icon) {
+  color: rgb(var(--v-theme-secondary)) !important;
+}
+
+.quotation-tabs :deep(.v-slide-group__prev .v-icon),
+.quotation-tabs :deep(.v-slide-group__next .v-icon) {
+  color: #d1d5db;
 }
 
 .quotation-tabs :deep(.v-slide-group__content) {
@@ -195,17 +262,22 @@ const activeTab = ref('inicio')
 }
 
 @media (max-width: 700px) {
-  .header-brand,
-  .quotation-tabs {
-    width: 100%;
-  }
-
   .client-quotation-page {
     margin: -16px -16px 0;
   }
 
   .header-brand {
-    padding: 14px 16px 10px;
+    padding: 0 16px;
+  }
+
+  .quotation-tabs {
+    display: none;
+  }
+
+  .mobile-tabs-menu {
+    display: block;
+    margin-left: auto;
+    margin-right: 12px;
   }
 
   .quotation-tabs :deep(.v-slide-group__content) {

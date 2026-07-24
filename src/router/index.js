@@ -26,6 +26,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/contacts',
+      name: 'contacts',
+      component: () => import('../views/ContactsView.vue'),
+      meta: {
+        icon: 'mdi-contacts',
+        navLabel: 'Contactos',
+        showInNav: true,
+      },
+    },
+    {
       path: '/contact-chat/:access_code',
       name: 'contact-chat',
       component: () => import('../views/ContactChatView.vue'),

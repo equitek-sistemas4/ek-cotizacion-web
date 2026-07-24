@@ -92,7 +92,6 @@ const sendMemberUrlByWhatsapp = async (member) => {
 }
 
 const getMemberUrl = (member) => {
-  console.log('member:', member)
   const access_code = member?.access_code
   if (!access_code) {
     return ''
@@ -142,7 +141,7 @@ watch(() => props.chatId, loadChat, { immediate: true })
     <div class="pa-4 text-center">
         <v-dialog
             v-model="dialog"
-            max-width="600"
+            max-width="800"
         >
             <template v-slot:activator="{ props: activatorProps }">
                 <v-btn
@@ -216,30 +215,32 @@ watch(() => props.chatId, loadChat, { immediate: true })
                         </v-list-item-subtitle>
 
                         <div class="member-url">
-                            <span>{{ getMemberUrl(member) || 'URL no disponible' }}</span>
-                            <v-tooltip text="enviar por WhatsApp">
-                                <template #activator="{ props: tooltipProps }">
-                                    <v-btn
-                                        aria-label="Enviar URL por WhatsApp"
-                                        color="success"
-                                        icon="mdi-whatsapp"
-                                        :disabled="!getMemberUrl(member) || !member.contact?.phone_number"
-                                        :loading="sendingWhatsappMemberId === member.id"
-                                        size="x-small"
-                                        variant="text"
-                                        v-bind="tooltipProps"
-                                        @click.stop="sendMemberUrlByWhatsapp(member)"
-                                    />
-                                </template>
-                            </v-tooltip>
-                            <v-btn
-                                :aria-label="copiedMemberId === member.id ? 'URL copiada' : 'Copiar URL'"
-                                :color="copiedMemberId === member.id ? 'success' : 'primary'"
-                                :icon="copiedMemberId === member.id ? 'mdi-check' : 'mdi-content-copy'"
-                                size="x-small"
-                                variant="text"
-                                @click.stop="copyMemberUrl(member)"
-                            />
+                            <span class="member-url-text">{{ getMemberUrl(member) || 'URL no disponible' }}</span>
+                            <div class="member-url-actions">
+                                <v-tooltip text="enviar por WhatsApp">
+                                    <template #activator="{ props: tooltipProps }">
+                                        <v-btn
+                                            aria-label="Enviar URL por WhatsApp"
+                                            color="success"
+                                            icon="mdi-whatsapp"
+                                            :disabled="!getMemberUrl(member) || !member.contact?.phone_number"
+                                            :loading="sendingWhatsappMemberId === member.id"
+                                            size="x-small"
+                                            variant="text"
+                                            v-bind="tooltipProps"
+                                            @click.stop="sendMemberUrlByWhatsapp(member)"
+                                        />
+                                    </template>
+                                </v-tooltip>
+                                <v-btn
+                                    :aria-label="copiedMemberId === member.id ? 'URL copiada' : 'Copiar URL'"
+                                    :color="copiedMemberId === member.id ? 'success' : 'primary'"
+                                    :icon="copiedMemberId === member.id ? 'mdi-check' : 'mdi-content-copy'"
+                                    size="x-small"
+                                    variant="text"
+                                    @click.stop="copyMemberUrl(member)"
+                                />
+                            </div>
                         </div>
 
                         <template #append>
@@ -333,18 +334,26 @@ h3 {
 }
 
 .member-url {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 8px;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin-top: 6px;
   color: rgb(var(--v-theme-textMuted));
   font-size: 0.76rem;
 }
 
-.member-url span {
+.member-url-text {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.member-url-actions {
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
 }
 </style>

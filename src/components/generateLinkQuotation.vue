@@ -52,6 +52,18 @@
               ></v-select>
             </v-col>
 
+            <v-col
+              cols="12"
+            >
+              <v-text-field
+                autocomplete="off"
+                hint="Numero de Cotizacion"
+                label="# Cotizacion"
+                type="number"
+                v-model="quotationId"
+              ></v-text-field>
+            </v-col>
+
           </v-row>
 
         </v-card-text>
@@ -95,6 +107,7 @@
     const chatsError = ref('')
     const userId = ref(null)
     const chatName = ref('')
+    const quotationId = ref(null)
     const contactId = ref(null)
     const newChat = ref(null)
     const contactsError = ref('')
@@ -135,6 +148,7 @@
                 name: chatName.value,
                 user_id: userId.value,
                 contact_id: contactId.value,
+                quotation_id: quotationId.value
             })
             showAlert({
                 type: 'success',

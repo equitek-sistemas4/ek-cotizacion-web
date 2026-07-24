@@ -42,7 +42,7 @@ const contactName = computed(() => {
   )
 })
 
-const getQuotationId = (...sources) => {
+/*const getQuotationId = (...sources) => {
   for (const source of sources) {
     const quotation = source?.quotation ?? source?.cotizacion
     const id =
@@ -59,7 +59,7 @@ const getQuotationId = (...sources) => {
   }
 
   return null
-}
+}*/
 
 const scrollMessagesToBottom = async () => {
   await nextTick()
@@ -270,6 +270,7 @@ const loadChat = async () => {
     chatId.value = chatMember?.chat_id ?? null
     contactId.value = chatMember?.contact_id ?? null
     token.value = chatMember?.token ?? null
+    quotationId.value = chatMember?.quotation_id ?? null
 
     const [chatDetail, messagesData] = await Promise.all([
       getChatById(chatId.value, { accessToken: token.value }),
@@ -277,7 +278,6 @@ const loadChat = async () => {
     ])
 
     chat.value = chatDetail
-    quotationId.value = getQuotationId(chatMember, chatDetail)
     messages.value = Array.isArray(messagesData?.messages)
       ? messagesData.messages.map(normalizeMessage)
       : []
@@ -375,6 +375,7 @@ onBeforeUnmount(() => {
 <template>
   <v-container class="contact-chat-view" fluid>
     <info-client-quotation
+      v-if="token"
       :chat-title="chatTitle"
       :contact-name="contactName"
       :error-message="errorMessage"
@@ -387,10 +388,10 @@ onBeforeUnmount(() => {
       aria-label="Abrir chat"
       class="chat-fab"
       color="primary"
-      icon="mdi-message-text"
+      append-icon="mdi-message-text"
       size="large"
       @click="chatOpen = true"
-    />
+    >Chat</v-btn>
 
     <v-navigation-drawer
       v-model="chatOpen"

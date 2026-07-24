@@ -71,13 +71,15 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
       </div>
 
       <div class="equipment-list">
-        <v-card v-for="item in equipment" :key="item.idcequipos" variant="outlined">
+        <v-card v-for="item in equipment" :key="item.idcequipos" variant="elevated">
           <v-card-title class="equipment-title">
             <div>
-              <p>{{ item.familia }}</p>
+              <!--<p>{{ item.familia }}</p>-->
+              <v-chip color="default" variant="flat">{{ item.familia }}</v-chip>
               <h2>{{ item.modelo }}</h2>
             </div>
-            <strong>{{ formatCurrency(item.costoactual ?? item.costo) }}</strong>
+            <!--<strong>{{ formatCurrency(item.costoactual ?? item.costo) }}</strong>-->
+            <v-chip color="green" variant="flat">{{ formatCurrency(item.costoactual ?? item.costo) }}</v-chip>
           </v-card-title>
 
           <v-card-text class="equipment-content">
@@ -146,7 +148,6 @@ h1 {
 }
 .equipment-title h2 {
   margin: 6px 0 0;
-  color: rgb(var(--v-theme-textPrimary));
   font-size: 1.2rem;
 }
 .equipment-title strong {
@@ -161,8 +162,15 @@ h1 {
   white-space: pre-line;
 }
 .equipment-content a {
-  color: rgb(var(--v-theme-primary));
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-surface));
   font-weight: 700;
+  text-decoration: none;
 }
 @media (max-width: 500px) {
   .equipment-title {

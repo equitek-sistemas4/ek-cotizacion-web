@@ -16,6 +16,14 @@ export const themeColors = {
   border: '#d9e3df',
 }
 
+export const themeColorsDark = {
+  primary: '#1e2436',
+  secondary: '#fd363c',
+  textPrimary: '#f8fafc',
+  textMuted: '#cbd5e1',
+  border: '#475569',
+}
+
 export default createVuetify({
   components,
   directives,
@@ -31,6 +39,9 @@ export default createVuetify({
     themes: {
       light: {
         colors: themeColors,
+      },
+      dark: {
+        colors: themeColorsDark,
       },
     },
   },

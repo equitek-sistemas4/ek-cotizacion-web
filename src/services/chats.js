@@ -45,11 +45,16 @@ export const getChatMemberByCode = async (access_code) => {
 
 export const addMember = async ({
   chat_id,
-  contact_id,
+  contact_ids,
 }) => {
   const body = new URLSearchParams()
   body.append('chat_id', chat_id)
-  body.append('contact_id', contact_id)
+  
+  // Agregar cada contact_id a la lista
+  contact_ids.forEach((id) => {
+    body.append('contact_ids', id)
+  })
+  
   const response = await chatsApi.post(`/chats/${chat_id}/members`, body, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

@@ -23,14 +23,35 @@
             <v-col
               cols="12"
             >
-              <v-select
+              <v-autocomplete
+                autocomplete="off"
+                v-model="contactId"
+                :disabled="isUpdating"
                 :items="contacts"
                 item-title="name"
                 item-value="id"
-                v-model="contactId"
                 label="Contactos"
+                chips
+                closable-chips
+                multiple
                 required
-              ></v-select>
+                return-object
+              >
+                <template v-slot:chip="{ props, item }">
+                  <v-chip
+                    v-bind="props"
+                    :text="item.raw.name"
+                  ></v-chip>
+                </template>
+
+                <template v-slot:item="{ props, item }">
+                  <v-list-item
+                    v-bind="props"
+                    :subtitle="item.raw.company"
+                    :title="item.raw.name"
+                  ></v-list-item>
+                </template>
+              </v-autocomplete>
             </v-col>
 
           </v-row>
@@ -124,7 +145,7 @@
         try {
             await addMember({
                 chat_id: props.chatId,
-                contact_id: contactId.value,
+                contact_ids: contactId.value.map(item => item.id),
             })
             showAlert({
                 type: 'success',

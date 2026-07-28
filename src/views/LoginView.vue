@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '@/services/auth'
 import { useAuthStore } from '@/stores/auth'
+import logoImg from '@/assets/logo.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -60,15 +61,12 @@ const handleSubmit = async () => {
   <v-container class="login-view" fluid>
     <v-card class="login-panel" elevation="12" rounded="lg">
       <v-card-text class="pa-8">
-        <div class="login-brand">
-          <v-avatar color="primary" rounded="lg" size="56">
-            <span class="login-logo">EC</span>
-          </v-avatar>
-
-          <div>
-            <p class="login-eyebrow">Sistema de cotizaciones</p>
-            <h1>Iniciar sesion</h1>
+        <div class="login-header">
+          <div class="login-logo-container">
+            <v-img :src="logoImg" alt="Equitek" class="login-logo-image" />
           </div>
+          <p class="login-eyebrow">Sistema de cotizaciones</p>
+          <h1>Iniciar sesion</h1>
         </div>
 
         <v-form ref="form" class="login-form" @submit.prevent="handleSubmit">
@@ -173,6 +171,26 @@ const handleSubmit = async () => {
   font-weight: 700;
 }
 
+.login-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 32px;
+  gap: 12px;
+}
+
+.login-logo-container {
+  width: 100%;
+  max-width: 180px;
+  margin-bottom: 8px;
+}
+
+.login-logo-image {
+  width: 100%;
+  height: auto;
+}
+
 .login-eyebrow {
   margin: 0 0 4px;
   color: rgb(var(--v-theme-textMuted));
@@ -204,7 +222,10 @@ h1 {
 }
 
 @media (max-width: 480px) {
-  .login-brand,
+  .login-logo-container {
+    max-width: 150px;
+  }
+
   .login-options {
     align-items: flex-start;
     flex-direction: column;

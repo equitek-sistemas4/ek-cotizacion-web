@@ -42,14 +42,43 @@
             <v-col
               cols="12"
             >
-              <v-select
+              <v-autocomplete
+                autocomplete="off"
+                v-model="contactId"
+                :disabled="isUpdating"
+                :items="contacts"
+                item-title="name"
+                item-value="id"
+                label="Contactos"
+                chips
+                closable-chips
+                multiple
+                required
+                return-object
+              >
+                <template v-slot:chip="{ props, item }">
+                  <v-chip
+                    v-bind="props"
+                    :text="item.raw.name"
+                  ></v-chip>
+                </template>
+
+                <template v-slot:item="{ props, item }">
+                  <v-list-item
+                    v-bind="props"
+                    :subtitle="item.raw.company"
+                    :title="item.raw.name"
+                  ></v-list-item>
+                </template>
+              </v-autocomplete>
+              <!--<v-select
                 :items="contacts"
                 item-title="name"
                 item-value="id"
                 v-model="contactId"
                 label="Contacto"
                 required
-              ></v-select>
+              ></v-select>-->
             </v-col>
 
             <v-col
@@ -147,7 +176,7 @@
             newChat.value = await createLinkQuotation({
                 name: chatName.value,
                 user_id: userId.value,
-                contact_id: contactId.value,
+                contact_ids: contactId.value.map(item => item.id),
                 quotation_id: quotationId.value
             })
             showAlert({

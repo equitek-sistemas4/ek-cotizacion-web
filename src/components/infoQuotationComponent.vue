@@ -44,7 +44,6 @@ const buildEquipmentSummary = (equipments) => {
 }
 
 const loadQuotationInfo = async () => {
-  console.log("props.quotationId", props.quotationId)
   if (!props.quotationId) {
     quotationInfo.value = null
     prospectInfo.value = null

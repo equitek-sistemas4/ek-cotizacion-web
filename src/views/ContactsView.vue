@@ -86,6 +86,13 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <MessageAlertDialog
+      v-model="alertDialog"
+      :type="alertType"
+      :title="alertTitle"
+      :message="alertMessage"
+    />
   </div>
 </template>
 
@@ -94,6 +101,7 @@ import { ref, onMounted } from 'vue'
 import { getContacts, deleteContact } from '@/services/contacts'
 import dialogCreateContact from '@/components/dialogCreateContact.vue'
 import dialogEditContact from '@/components/dialogEditContact.vue'
+import MessageAlertDialog from '@/components/MessageAlertDialog.vue'
 
 const contacts = ref([])
 const loading = ref(false)
@@ -101,6 +109,10 @@ const deleteDialog = ref(false)
 const selectedContact = ref(null)
 const contactToEdit = ref(null)
 const editDialogRef = ref(null)
+const alertDialog = ref(false)
+const alertType = ref('error')
+const alertTitle = ref('')
+const alertMessage = ref('')
 
 const headers = [
   { title: 'Nombre', key: 'name', align: 'start' },
@@ -139,6 +151,13 @@ const deleteContactConfirm = (contact) => {
   deleteDialog.value = true
 }
 
+const showAlert = ({ type, title, message }) => {
+  alertType.value = type
+  alertTitle.value = title
+  alertMessage.value = message
+  alertDialog.value = true
+}
+
 const confirmDelete = async () => {
   if (!selectedContact.value) return
 
@@ -148,6 +167,13 @@ const confirmDelete = async () => {
     await loadContacts()
   } catch (error) {
     console.error('Error al eliminar contacto:', error)
+    showAlert({
+      type: 'error',
+      title: 'Error al eliminar contacto',
+      message:
+        error.response?.data?.message ||
+        'No se pudo eliminar el contacto. Por favor, intenta de nuevo.',
+    })
   }
 }
 

@@ -26,6 +26,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/users',
+      name: 'users',
+      component: () => import('../views/UsersView.vue'),
+      meta: {
+        icon: 'mdi-account',
+        navLabel: 'Usuarios',
+        showInNav: true,
+      },
+    },
+    {
       path: '/contacts',
       name: 'contacts',
       component: () => import('../views/ContactsView.vue'),

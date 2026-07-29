@@ -23,7 +23,7 @@
           :headers="headers"
           :items="contacts"
           :loading="loading"
-          class="elevation-0"
+          class="contacts-table elevation-0"
           style="padding: 10px;"
         >
           <template v-slot:item.actions="{ item }">
@@ -36,8 +36,8 @@
                 <template v-slot:activator="{ props }">
                   <v-btn
                     v-bind="props"
-                    icon="mdi-pencil"
-                    size="small"
+                    icon="mdi-pencil-outline"
+                    size="large"
                     variant="text"
                     color="primary"
                     @click.stop="editContact(item)"
@@ -46,8 +46,8 @@
                 </template>
               </dialogEditContact>
               <v-btn
-                icon="mdi-delete"
-                size="small"
+                icon="mdi-delete-forever"
+                size="large"
                 variant="text"
                 color="error"
                 @click="deleteContactConfirm(item)"
@@ -186,6 +186,13 @@ onMounted(() => {
 .contacts-view {
   min-height: 100vh;
   background-color: var(--vt-c-bg);
+}
+
+.contacts-table :deep(thead th) {
+  background-color: rgba(var(--v-theme-primary), 0.05);
+  border-bottom: 1px solid rgb(var(--v-theme-border));
+  color: rgb(var(--v-theme-textPrimary));
+  font-weight: 600;
 }
 
 .gap-2 {

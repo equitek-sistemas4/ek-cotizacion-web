@@ -1,11 +1,15 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import logoImg from '@/assets/logo.png'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const collapsed = ref(false)
 const logoUrl = logoImg
+
+const loggedUserName = computed(() => authStore.user?.name || authStore.user?.email || 'Usuario')
 
 const navigationItems = computed(() =>
   router
@@ -66,6 +70,12 @@ const logout = () => {
       <v-spacer />
 
       <v-list class="logout-list" density="compact" nav>
+        <v-list-item
+          v-if="!collapsed"
+          :title="loggedUserName"
+          prepend-icon="mdi-account-circle"
+          rounded="lg"
+        />
         <v-list-item
           color="primary"
           prepend-icon="mdi-logout"

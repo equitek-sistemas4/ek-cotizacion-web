@@ -36,6 +36,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/roles',
+      name: 'roles',
+      component: () => import('../views/RolesView.vue'),
+      meta: {
+        icon: 'mdi-shield-account-outline',
+        navLabel: 'Roles',
+        showInNav: true,
+      },
+    },
+    {
       path: '/contacts',
       name: 'contacts',
       component: () => import('../views/ContactsView.vue'),

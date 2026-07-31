@@ -3,9 +3,11 @@ import { ref } from 'vue'
 import logoUrl from '@/assets/Equitek_Logo.webp'
 import conditionsQuotationComponent from '@/components/conditionsQuotationComponent.vue'
 import equipmentQuotationComponent from '@/components/equipmentQuotationComponent.vue'
+import financeQuotation from '@/components/financeQuotation.vue'
 import infoQuotationComponent from '@/components/infoQuotationComponent.vue'
 import linksQuotationComponent from '@/components/linksQuotationComponent.vue'
 import productsQuotationComponent from '@/components/productsQuotationComponent.vue'
+import scopesQuotationComponent from '@/components/scopesQuotationComponent.vue'
 
 defineProps({
   loading: { type: Boolean, default: false },
@@ -54,6 +56,14 @@ const mobileTabsMenu = ref(false)
           <v-icon class="tab-icon" icon="mdi-target"></v-icon>
           Alcances
         </v-tab>
+        <v-tab value="condiciones">
+          <v-icon class="tab-icon" icon="mdi-file-document-check"></v-icon>
+          Condiciones
+        </v-tab>
+        <v-tab value="financiero">
+          <v-icon class="tab-icon" icon="mdi-cash"></v-icon>
+          Analisis Financiero
+        </v-tab>
         <v-tab value="ligas">
           <v-icon class="tab-icon" icon="mdi-link"></v-icon>
           Ligas
@@ -99,6 +109,16 @@ const mobileTabsMenu = ref(false)
               @click="activeTab = 'alcances'; mobileTabsMenu = false"
             />
             <v-list-item
+              prepend-icon="mdi-file-document-check"
+              title="Condiciones"
+              @click="activeTab = 'condiciones'; mobileTabsMenu = false"
+            />
+            <v-list-item
+              prepend-icon="mdi-cash"
+              title="Financiero"
+              @click="activeTab = 'financiero'; mobileTabsMenu = false"
+            />
+            <v-list-item
               prepend-icon="mdi-link"
               title="Ligas"
               @click="activeTab = 'ligas'; mobileTabsMenu = false"
@@ -135,6 +155,18 @@ const mobileTabsMenu = ref(false)
         v-else-if="activeTab === 'productos'"
         :access-token="accessToken"
         :quotation-id=quotationId
+      />
+
+      <scopes-quotation-component
+        v-else-if="activeTab === 'alcances'"
+        :access-token="accessToken"
+        :quotation-id="quotationId"
+      />
+
+      <finance-quotation
+        v-else-if="activeTab === 'financiero'"
+        :access-token="accessToken"
+        :quotation-id="quotationId"
       />
 
       <links-quotation-component v-else-if="activeTab === 'ligas'" />

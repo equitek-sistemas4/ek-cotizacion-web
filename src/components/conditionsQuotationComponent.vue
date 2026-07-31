@@ -59,15 +59,15 @@ watch(() => [props.quotationId, props.accessToken], loadConditions, { immediate:
         <h1>Condiciones comerciales</h1>
       </div>
 
-      <v-expansion-panels variant="accordion">
-        <v-expansion-panel v-for="condition in conditions" :key="condition.idconds">
-          <v-expansion-panel-title>{{ condition.tipo }}</v-expansion-panel-title>
-          <v-expansion-panel-text>
+      <div class="conditions-list">
+        <v-card v-for="condition in conditions" :key="condition.idconds" variant="tonal">
+          <v-card-title>{{ condition.tipo }}</v-card-title>
+          <v-card-text>
             <p class="condition-description">{{ condition.descripcion }}</p>
             <p v-if="condition.nota" class="condition-note">Nota: {{ condition.nota }}</p>
-          </v-expansion-panel-text>
-        </v-expansion-panel>
-      </v-expansion-panels>
+          </v-card-text>
+        </v-card>
+      </div>
     </template>
   </section>
 </template>
@@ -76,6 +76,15 @@ watch(() => [props.quotationId, props.accessToken], loadConditions, { immediate:
 .conditions-quotation {
   display: grid;
   gap: 24px;
+}
+.conditions-list {
+  display: grid;
+  gap: 16px;
+}
+.conditions-list :deep(.v-card-title) {
+  color: rgb(var(--v-theme-primary));
+  font-size: 1rem;
+  white-space: normal;
 }
 .conditions-state {
   display: grid;

@@ -75,3 +75,12 @@ export const getQuotationEquipment = async (quotation_id, { accessToken } = {}) 
 
   return response.data?.data ?? null
 }
+
+export const getQuotationScopes = async (quotation_id, { accessToken } = {}) => {
+  const response = await quotationsApi.get(
+    `/quotations/${quotation_id}/equipment/scopes`,
+    getAuthorizationConfig(accessToken),
+  )
+
+  return response.data?.data ?? null
+}

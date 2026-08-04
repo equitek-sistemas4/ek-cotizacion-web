@@ -1,10 +1,7 @@
 <template>
   <div class="pa-4 text-center">
-    <v-dialog
-      v-model="dialog"
-      max-width="600"
-    >
-      <template v-slot:activator="{ props: activatorProps }">
+    <v-dialog v-model="dialog" max-width="600">
+      <template v-if="showActivator" v-slot:activator="{ props: activatorProps }">
         <v-btn
           class="text-none font-weight-regular"
           icon="mdi-account-multiple-plus"
@@ -83,11 +80,15 @@
 </template>
 
 <script setup>
-    import { shallowRef, ref, watch } from 'vue'
+    import { ref, watch } from 'vue'
     import { addMember } from '@/services/chats'
     import { getContactsAvailableChat } from '@/services/contacts'
 
     const props = defineProps({
+        showActivator: {
+            type: Boolean,
+            default: true,
+        },
         chatId: {
             type: [Number, String],
             default: null,
@@ -95,7 +96,7 @@
     })
     const emit = defineEmits(['member-added'])
 
-    const dialog = shallowRef(false)
+    const dialog = defineModel({ default: false })
     const contacts = ref([])
     const contactsError = ref('')
     const addMemberError = ref('')

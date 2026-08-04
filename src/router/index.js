@@ -56,6 +56,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/contact-requests',
+      name: 'contact-requests',
+      component: () => import('../views/contactRequests.vue'),
+      meta: {
+        icon: 'mdi-account-clock-outline',
+        navLabel: 'Solicitudes de contacto',
+        showInNav: true,
+      },
+    },
+    {
       path: '/contact-chat/:access_code',
       name: 'contact-chat',
       component: () => import('../views/ContactChatView.vue'),

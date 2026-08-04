@@ -1,16 +1,24 @@
 <script setup>
-import { shallowRef, computed, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getChatById } from '@/services/chats'
 import { sendTemplateMeta } from '@/services/whatsapp'
 
 const props = defineProps({
+  showActivator: {
+    type: Boolean,
+    default: true,
+  },
   chatId: {
     type: [Number, String],
     default: null,
   },
+  hideMemberLinkActions: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const dialog = shallowRef(false)
+const dialog = defineModel({ default: false })
 const chat = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
@@ -143,7 +151,7 @@ watch(() => props.chatId, loadChat, { immediate: true })
             v-model="dialog"
             max-width="800"
         >
-            <template v-slot:activator="{ props: activatorProps }">
+            <template v-if="showActivator" v-slot:activator="{ props: activatorProps }">
                 <v-btn
                     class="text-none font-weight-regular"
                     icon="mdi-information-outline"
@@ -210,11 +218,11 @@ watch(() => props.chatId, loadChat, { immediate: true })
                         </v-list-item-title>
 
                         <v-list-item-subtitle>
-                            {{ member.contact?.company || 'Sin empresa' }}
+                            {{ member.contact?.company || 'Sin empresa' }} - {{ member.contact?.position ? `(${member.contact.position})` : '' }}
                             <span v-if="member.contact?.phone_number"> · {{ member.contact.phone_number }}</span>
                         </v-list-item-subtitle>
 
-                        <div class="member-url">
+                        <div v-if="!hideMemberLinkActions" class="member-url">
                             <span class="member-url-text">{{ getMemberUrl(member) || 'URL no disponible' }}</span>
                             <div class="member-url-actions">
                                 <v-tooltip text="enviar por WhatsApp">

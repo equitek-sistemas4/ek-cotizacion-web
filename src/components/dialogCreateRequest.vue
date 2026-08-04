@@ -6,7 +6,7 @@
       </slot>
     </template>
 
-    <v-card prepend-icon="mdi-account-plus" title="Crear Contacto">
+    <v-card prepend-icon="mdi-account-plus" title="Crear Solicitud">
       <v-card-text>
         <v-row density="comfortable">
           <v-col cols="12">
@@ -98,9 +98,15 @@
 
 <script setup>
 import { ref } from 'vue'
-import { createContact } from '@/services/contacts'
+import { createContactRequest } from '@/services/contacts'
 
 const emit = defineEmits(['contact-created'])
+const props = defineProps({
+  chatId: {
+    type: [String, Number],
+    required: true,
+  },
+})
 
 const dialog = ref(false)
 const loading = ref(false)
@@ -111,6 +117,7 @@ const form = ref({
   phone_number: '',
   display_name: '',
   company: '',
+  position: '',
 })
 
 const closeDialog = () => {
@@ -136,19 +143,25 @@ const handleCreateContact = async () => {
     return
   }
 
+  if (!props.chatId) {
+    errorMessage.value = 'No se pudo identificar el chat de la solicitud'
+    return
+  }
+
   loading.value = true
   errorMessage.value = ''
 
   try {
-    await createContact({
-      name: form.value.name,
-      phone_number: form.value.phone_number,
-      display_name: form.value.display_name,
-      company: form.value.company,
-      position: form.value.company,
+    await createContactRequest({
+      chat_id: props.chatId,
+      contact_name: form.value.name,
+      contact_phone_number: form.value.phone_number,
+      contact_display_name: form.value.display_name,
+      contact_company: form.value.company,
+      contact_position: form.value.position,
     })
 
-    emit('contact-created')
+    emit('contact-created', { chat_id: props.chatId })
     closeDialog()
   } catch (error) {
     console.error('Error al crear contacto:', error)

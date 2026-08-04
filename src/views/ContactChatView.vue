@@ -7,6 +7,8 @@ import {
   sendChatMessage,
   getChatMemberByCode,
 } from '@/services/chats'
+import dialogCreateRequest from '@/components/dialogCreateRequest.vue'
+import infoChatMembers from '@/components/infoChatMembers.vue'
 import infoClientQuotation from '@/components/infoClientQuotation.vue'
 
 const route = useRoute()
@@ -29,6 +31,8 @@ const messagesPanel = ref(null)
 const chatSocket = ref(null)
 const chatOpen = ref(false)
 const quotationId = ref(null)
+const membersDialogOpen = ref(false)
+const infoChatMembersKey = ref(0)
 let reconnectTimer = null
 
 const chatTitle = computed(() => chat.value?.name || 'Chat')
@@ -296,6 +300,15 @@ const loadChat = async () => {
   }
 }
 
+const refreshSelectedChat = async ({ chat_id } = {}) => {
+  if (chat_id && String(chat_id) !== String(chatId.value)) {
+    return
+  }
+
+  await loadChat()
+  infoChatMembersKey.value += 1
+}
+
 const isAllowedAttachment = (file) =>
   file?.type === 'application/pdf' || file?.type?.startsWith('image/')
 
@@ -411,6 +424,39 @@ onBeforeUnmount(() => {
               <h1>{{ chatTitle }}</h1>
               <p>{{ contactName }}</p>
             </div>
+          </div>
+
+          <div class="quotation-actions">
+            <dialogCreateRequest
+              :chat-id="chatId"
+              @contact-created="refreshSelectedChat"
+            >
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  aria-label="Crear contacto"
+                  icon="mdi-account-plus"
+                  size="small"
+                  title="Crear contacto"
+                  variant="outlined"
+                />
+              </template>
+            </dialogCreateRequest>
+            <v-btn
+              aria-label="Ver miembros del chat"
+              icon="mdi-information-outline"
+              size="small"
+              title="Ver miembros"
+              variant="outlined"
+              @click="membersDialogOpen = true"
+            />
+            <infoChatMembers
+              v-model="membersDialogOpen"
+              :key="infoChatMembersKey"
+              :chat-id="chatId"
+              hide-member-link-actions
+              :show-activator="false"
+            />
           </div>
 
           <v-btn
@@ -593,6 +639,20 @@ onBeforeUnmount(() => {
 .message-composer {
   display: flex;
   align-items: center;
+}
+
+.quotation-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+.quotation-actions :deep(.v-btn) {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  color: rgb(var(--v-theme-primary));
+  border-color: rgb(var(--v-theme-primary));
 }
 
 .conversation-header {
@@ -813,7 +873,12 @@ onBeforeUnmount(() => {
   }
 
   .conversation-user {
+    flex: 1 1 auto;
     gap: 10px;
+  }
+
+  .quotation-actions {
+    gap: 0;
   }
 
   .conversation-user :deep(.v-avatar) {

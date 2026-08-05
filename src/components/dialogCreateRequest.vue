@@ -6,7 +6,7 @@
       </slot>
     </template>
 
-    <v-card prepend-icon="mdi-account-plus" title="Crear Solicitud">
+    <v-card prepend-icon="mdi-account-plus" title="Solicitar Acceso al Chat para Nuevo Participante">
       <v-card-text>
         <v-row density="comfortable">
           <v-col cols="12">

@@ -14,9 +14,10 @@ const getAuthorizationConfig = (accessToken) => {
   }
 }
 
-export const createLinkQuotation = async ({ name, user_id, contact_ids, quotation_id }) => {
+export const createLinkQuotation = async ({ name, description, user_id, contact_ids, quotation_id }) => {
   const body = new URLSearchParams()
   body.append('name', name)
+  body.append('description', description)
   body.append('user_id', user_id)
   contact_ids.forEach((id) => {
     body.append('contact_ids', id)

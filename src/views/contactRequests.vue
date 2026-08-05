@@ -58,7 +58,7 @@
             <v-divider />
 
             <v-card-text class="request-details">
-              <div><v-icon icon="mdi-forum-outline" size="small" /> <h3>{{ request.chat?.name || `Chat #${request.chat_id}` }}</h3></div>
+              <div><v-icon icon="mdi-forum-outline" size="small" /> <h3>{{ request.chat?.name }} #{{ request.chat?.quotation_id }}</h3>- {{ request.chat?.description }}</div>
               <div><v-icon icon="mdi-phone-outline" size="small" /> {{ request.contact_phone_number }}</div>
               <div v-if="request.contact_company"><v-icon icon="mdi-domain" size="small" /> {{ request.contact_company }}</div>
               <div v-if="request.contact_position"><v-icon icon="mdi-briefcase-outline" size="small" /> {{ request.contact_position }}</div>

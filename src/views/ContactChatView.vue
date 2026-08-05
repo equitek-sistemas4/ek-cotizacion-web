@@ -35,7 +35,7 @@ const membersDialogOpen = ref(false)
 const infoChatMembersKey = ref(0)
 let reconnectTimer = null
 
-const chatTitle = computed(() => chat.value?.name || 'Chat')
+const chatTitle = computed(() => chat.value?.name + (chat.value?.quotation_id ? ` #${chat.value.quotation_id}` : '') || 'Chat')
 
 const contactName = computed(() => {
   const members = chat.value?.members ?? []
@@ -282,6 +282,7 @@ const loadChat = async () => {
     ])
 
     chat.value = chatDetail
+    console.log('Chat details loaded:', chat.value)
     messages.value = Array.isArray(messagesData?.messages)
       ? messagesData.messages.map(normalizeMessage)
       : []
@@ -434,10 +435,10 @@ onBeforeUnmount(() => {
               <template #activator="{ props }">
                 <v-btn
                   v-bind="props"
-                  aria-label="Crear contacto"
+                  aria-label="Solicitud de acceso a participante"
                   icon="mdi-account-plus"
                   size="small"
-                  title="Crear contacto"
+                  title="Solicitud de acceso a participante"
                   variant="outlined"
                 />
               </template>

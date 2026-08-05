@@ -10,11 +10,25 @@ const props = defineProps({
 const loading = ref(false)
 const errorMessage = ref('')
 const products = ref([])
+const productFiles = ref({})
 const presentationHeaders = [
   { title: 'Presentación', key: 'presentacion' },
   { title: 'Producción por minuto', key: 'produccion' },
   { title: 'Comentario', key: 'comentario' },
 ]
+
+const getProductFiles = (product) => productFiles.value[product?.idprod] ?? []
+
+const setProductFiles = (product, files) => {
+  if (!product?.idprod) {
+    return
+  }
+
+  productFiles.value = {
+    ...productFiles.value,
+    [product.idprod]: Array.isArray(files) ? files : files ? [files] : [],
+  }
+}
 
 const loadProducts = async () => {
   if (!props.quotationId) {
@@ -64,6 +78,16 @@ watch(() => [props.quotationId, props.accessToken], loadProducts, { immediate: t
         <h1>Productos</h1>
       </div>
 
+      <v-card>
+        <v-card-text>
+          <span>
+            A continuación, mostramos requerimientos que desean cumplan nuestros equipos en relación con el proyecto y capacidad de produccción requerida por
+ustedes. La capacidad del producto nominal es estimada, pudiendo variar hasta un 15% con base en cualidades particulares del envase, tapa, etiqueta y/o
+producto en su caso.
+          </span>
+        </v-card-text>
+      </v-card>
+
       <v-card v-for="product in products" :key="product.idprod" variant="elevated">
         <v-card-title>{{ product.producto }}</v-card-title>
         <v-card-subtitle v-if="product.descripcion">{{ product.descripcion }}</v-card-subtitle>
@@ -80,6 +104,23 @@ watch(() => [props.quotationId, props.accessToken], loadProducts, { immediate: t
             hide-default-footer
             density="comfortable"
           />
+
+          <section class="product-files">
+            <h3>Archivos del producto</h3>
+            <v-file-input
+              :model-value="getProductFiles(product)"
+              accept="image/*,video/*"
+              chips
+              clearable
+              density="compact"
+              hide-details
+              label="Agregar fotos o videos"
+              multiple
+              prepend-icon="mdi-paperclip"
+              variant="outlined"
+              @update:model-value="setProductFiles(product, $event)"
+            />
+          </section>
         </v-card-text>
       </v-card>
     </template>
@@ -97,6 +138,16 @@ watch(() => [props.quotationId, props.accessToken], loadProducts, { immediate: t
   gap: 12px;
   min-height: 240px;
   color: rgb(var(--v-theme-textMuted));
+}
+.product-files {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+.product-files h3 {
+  margin: 0;
+  color: rgb(var(--v-theme-textPrimary));
+  font-size: 1rem;
 }
 .products-eyebrow {
   margin: 0;

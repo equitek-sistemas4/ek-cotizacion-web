@@ -12,7 +12,7 @@
 
       <v-card
         prepend-icon="mdi-account-plus"
-        title="Agregar Participante"
+        title="Agregar Nuevo Participante al Chat"
       >
         <v-card-text>
           <v-row density="comfortable">

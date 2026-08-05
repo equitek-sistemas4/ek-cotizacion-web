@@ -94,3 +94,16 @@ export const sendChatMessage = async ({
 
   return response.data?.data ?? response.data
 }
+
+export const deleteMemberToChat = async ({
+  chat_id,
+  contact_id
+}) => {
+  const response = await chatsApi.delete(`/chat_members/${chat_id}/contacts/${contact_id}`, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  })
+
+  return response.data?.data ?? response.data
+}

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { getChatById } from '@/services/chats'
+import { getChatById, deleteMemberToChat } from '@/services/chats'
 import { sendTemplateMeta } from '@/services/whatsapp'
 
 const props = defineProps({
@@ -24,6 +24,8 @@ const loading = ref(false)
 const errorMessage = ref('')
 const copiedMemberId = ref(null)
 const sendingWhatsappMemberId = ref(null)
+const memberToRemove = ref(null)
+const removeMemberDialog = ref(false)
 
 const members = computed(() => (Array.isArray(chat.value?.members) ? chat.value.members : []))
 const baseUrl = import.meta.env.VITE_BASE_URL_WEB?.replace(/\/$/, '') ?? ''
@@ -96,6 +98,65 @@ const sendMemberUrlByWhatsapp = async (member) => {
     await sendTemplateMetaMessage(phoneNumber, accessCode)
   } finally {
     sendingWhatsappMemberId.value = null
+  }
+}
+
+async function removeMemberFromChat(member) {
+  console.log('Attempting to remove member from chat:', member)
+  if (!props.chatId || !member?.id) {
+    return
+  }
+
+  if (member.skipRemovalConfirmation) {
+    try {
+      await deleteMemberToChat({
+        chat_id: props.chatId,
+        contact_id: member.contact_id,
+      })
+      await loadChat()
+      return true
+    } catch (error) {
+      console.error('Error al eliminar miembro del chat:', error)
+      errorMessage.value = error.response?.data?.message || 'No se pudo eliminar al miembro del chat.'
+      return false
+    }
+  }
+
+  const confirmation = window.confirm('¿Estás seguro de eliminar a este miembro del chat?')
+
+  if (!confirmation) {
+    return
+  }
+
+  try {
+    await deleteMemberToChat({
+      chat_id: props.chatId,
+      contact_id: member.id,
+    })
+    await loadChat()
+  } catch (error) {
+    console.error('Error al eliminar miembro del chat:', error)
+    errorMessage.value = error.response?.data?.message || 'No se pudo eliminar al miembro del chat.'
+  }
+}
+
+const requestMemberRemoval = (member) => {
+  memberToRemove.value = member
+  removeMemberDialog.value = true
+}
+
+const confirmMemberRemoval = async () => {
+  const member = memberToRemove.value
+
+  if (!member) {
+    return
+  }
+
+  const removed = await removeMemberFromChat({ ...member, skipRemovalConfirmation: true })
+
+  if (removed) {
+    removeMemberDialog.value = false
+    memberToRemove.value = null
   }
 }
 
@@ -248,6 +309,14 @@ watch(() => props.chatId, loadChat, { immediate: true })
                                     variant="text"
                                     @click.stop="copyMemberUrl(member)"
                                 />
+                                <v-btn
+                                    aria-label="Eliminar participante de chat"
+                                    color="error"
+                                    icon="mdi-delete-outline"
+                                    size="x-small"
+                                    variant="text"
+                                    @click.stop="requestMemberRemoval(member)"
+                                />
                             </div>
                         </div>
 
@@ -259,6 +328,22 @@ watch(() => props.chatId, loadChat, { immediate: true })
                     </section>
                 </div>
                 </v-card-text>
+            </v-card>
+        </v-dialog>
+
+        <v-dialog v-model="removeMemberDialog" max-width="420">
+            <v-card>
+                <v-card-title>Eliminar miembro</v-card-title>
+                <v-card-text>
+                    ¿Estás seguro de eliminar a
+                    <strong>{{ memberToRemove?.contact?.display_name || memberToRemove?.contact_name || 'este miembro' }}</strong>
+                    del chat?
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer />
+                    <v-btn variant="text" @click="removeMemberDialog = false">Cancelar</v-btn>
+                    <v-btn color="error" variant="tonal" @click="confirmMemberRemoval">Eliminar</v-btn>
+                </v-card-actions>
             </v-card>
         </v-dialog>
     </div>

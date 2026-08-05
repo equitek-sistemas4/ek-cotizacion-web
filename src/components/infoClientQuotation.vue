@@ -8,6 +8,7 @@ import infoQuotationComponent from '@/components/infoQuotationComponent.vue'
 import linksQuotationComponent from '@/components/linksQuotationComponent.vue'
 import productsQuotationComponent from '@/components/productsQuotationComponent.vue'
 import scopesQuotationComponent from '@/components/scopesQuotationComponent.vue'
+import costsQuotationComponent from '@/components/costsQuotationComponent.vue'
 
 defineProps({
   loading: { type: Boolean, default: false },
@@ -153,6 +154,12 @@ const mobileTabsMenu = ref(false)
 
       <products-quotation-component
         v-else-if="activeTab === 'productos'"
+        :access-token="accessToken"
+        :quotation-id=quotationId
+      />
+
+      <costs-quotation-component
+        v-else-if="activeTab === 'precios'"
         :access-token="accessToken"
         :quotation-id=quotationId
       />

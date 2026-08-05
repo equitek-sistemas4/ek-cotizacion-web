@@ -60,7 +60,7 @@ watch(() => [props.quotationId, props.accessToken], loadConditions, { immediate:
       </div>
 
       <div class="conditions-list">
-        <v-card v-for="condition in conditions" :key="condition.idconds" variant="tonal">
+        <v-card v-for="condition in conditions" :key="condition.idconds" variant="elevated">
           <v-card-title>{{ condition.tipo }}</v-card-title>
           <v-card-text>
             <p class="condition-description">{{ condition.descripcion }}</p>

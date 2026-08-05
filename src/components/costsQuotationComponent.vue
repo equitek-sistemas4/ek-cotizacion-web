@@ -1,7 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getQuotationEquipment } from '@/services/quotations'
-import dvlAgroquimicosImage from '@/assets/Equipos/DVL-Agroquimicos-2-1024x577.webp'
 
 const props = defineProps({
   quotationId: { type: [Number, String], default: null },
@@ -11,6 +10,36 @@ const props = defineProps({
 const loading = ref(false)
 const errorMessage = ref('')
 const equipment = ref([])
+const discountRate = 0.2
+const taxRate = 0.16
+
+const toNumber = (value) => {
+  const parsedValue = Number(value)
+
+  return Number.isFinite(parsedValue) ? parsedValue : 0
+}
+
+const quotationTotals = computed(() => {
+  const subtotal = equipment.value.reduce(
+    (total, item) => total + toNumber(item.costoactual ?? item.costo),
+    0,
+  )
+  const discount = subtotal * discountRate
+  const extras = equipment.value.reduce(
+    (total, item) => total + toNumber(item.extras ?? item.extra),
+    0,
+  )
+  const beforeTax = subtotal - discount + extras
+  const tax = beforeTax * taxRate
+
+  return {
+    subtotal,
+    discount,
+    extras,
+    tax,
+    total: beforeTax + tax,
+  }
+})
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined) {
@@ -21,6 +50,14 @@ const formatCurrency = (value) => {
     style: 'currency',
     currency: 'MXN',
   }).format(Number(value))
+}
+
+const truncateText = (text, maxLength = 230) => {
+  if (!text) {
+    return ''
+  }
+
+  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text
 }
 
 const loadEquipment = async () => {
@@ -80,59 +117,48 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
               <h2>{{ item.modelo }}</h2>
             </div>
             <!--<strong>{{ formatCurrency(item.costoactual ?? item.costo) }}</strong>-->
-            <!--<v-chip color="green" variant="flat">{{ formatCurrency(item.costoactual ?? item.costo) }}</v-chip>-->
           </v-card-title>
 
           <v-card-text class="equipment-content">
             <v-row>
-              <v-col cols="6">
-                <p>{{ item.descripcion }}</p>
-
-                <br />
-
-                <v-expansion-panels
-                  v-if="item.serietxt || item.descripcc || item.comentario"
-                  variant="accordion"
-                >
-                  <v-expansion-panel v-if="item.serietxt" title="Descripción de la serie">
-                    <v-expansion-panel-text>{{ item.serietxt }}</v-expansion-panel-text>
-                  </v-expansion-panel>
-                  <v-expansion-panel v-if="item.descripcc" title="Características de construcción">
-                    <v-expansion-panel-text>{{ item.descripcc }}</v-expansion-panel-text>
-                  </v-expansion-panel>
-                  <v-expansion-panel v-if="item.comentario" title="Comentarios">
-                    <v-expansion-panel-text>{{ item.comentario }}</v-expansion-panel-text>
-                  </v-expansion-panel>
-                </v-expansion-panels>
+              <v-col cols="10">
+                <p>{{ truncateText(item.descripcion) }}</p>
               </v-col>
-
-              <v-col cols="6">
-                <v-img
-                  :src="dvlAgroquimicosImage"
-                  alt="DVL Agroquímicos"
-                  class="equipment-image"
-                  cover
-                />
-                <!--<iframe
-                  class="equipment-video"
-                  src="https://www.youtube.com/embed/pGkxFYy_OXE"
-                  title="Video de equipo DVL Agroquímicos"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowfullscreen
-                />-->
-              </v-col>
-
-              <v-col cols="12" class="equipment-image-column">
-                <a v-if="item.serie_desc" :href="item.serie_desc" rel="noopener" target="_blank">
-                  Ver información de la serie
-                  <v-icon icon="mdi-open-in-new" size="small" />
-                </a>
+              <v-col cols="2">
+                <v-chip color="green" variant="flat">{{ formatCurrency(item.costoactual ?? item.costo) }}</v-chip>
               </v-col>
             </v-row>
 
           </v-card-text>
         </v-card>
       </div>
+
+      <v-card class="quotation-totals" variant="elevated">
+        <v-table density="compact">
+          <tbody>
+            <tr>
+              <td>Subtotal</td>
+              <td>{{ formatCurrency(quotationTotals.subtotal) }}</td>
+            </tr>
+            <tr>
+              <td>Descuento (20.0000%)</td>
+              <td>-{{ formatCurrency(quotationTotals.discount) }}</td>
+            </tr>
+            <tr>
+              <td>Extras</td>
+              <td>{{ formatCurrency(quotationTotals.extras) }}</td>
+            </tr>
+            <tr>
+              <td>IVA (16%)</td>
+              <td>{{ formatCurrency(quotationTotals.tax) }}</td>
+            </tr>
+            <tr class="quotation-total-row">
+              <td>Total</td>
+              <td>{{ formatCurrency(quotationTotals.total) }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-card>
     </template>
   </section>
 </template>
@@ -150,6 +176,20 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
   gap: 12px;
   min-height: 240px;
   color: rgb(var(--v-theme-textMuted));
+}
+.quotation-totals {
+  width: min(100%, 420px);
+  justify-self: end;
+}
+.quotation-totals td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+.quotation-total-row td {
+  border-top: 1px solid rgb(var(--v-theme-border));
+  color: rgb(var(--v-theme-primary));
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 .equipment-image {
   width: 100%;

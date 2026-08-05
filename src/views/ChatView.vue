@@ -111,12 +111,21 @@ const formatChatTime = (dateValue) => {
   })
 }
 
+const truncateText = (text, maxLength = 17) => {
+  if (!text) {
+    return ''
+  }
+
+  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text
+}
+
 const normalizeChat = (chat) => ({
   id: chat.id,
   name: chat.name,
   status: chat.status,
+  quotation_id: chat.quotation_id ?? chat.quotationId ?? chat.quotation?.id ?? null,
   createdAt: chat.created_at,
-  preview: chat.status === 1 ? 'Chat activo' : 'Chat inactivo',
+  description: chat.description ?? chat.chat_description ?? '',
   time: formatChatTime(chat.created_at),
   unread: 0,
   messages: [],
@@ -234,7 +243,7 @@ const appendIncomingMessage = async (chatId, messageItem) => {
   }
 
   chat.messages.push(newMessage)
-  chat.preview = newMessage.text
+  //chat.preview = newMessage.text
   chat.time = newMessage.time
 
   if (String(selectedChatId.value) === String(chatId)) {
@@ -287,6 +296,10 @@ const updateChatDetail = (chatId, chatDetail) => {
   chats.value[chatIndex] = {
     ...chats.value[chatIndex],
     name: chatDetail.name ?? chats.value[chatIndex].name,
+    quotation_id:
+      chatDetail.quotation_id ?? chatDetail.quotationId ?? chatDetail.quotation?.id ?? chats.value[chatIndex].quotation_id,
+    description:
+      chatDetail.description ?? chatDetail.chat_description ?? chats.value[chatIndex].description,
     createdAt: chatDetail.created_at ?? chats.value[chatIndex].createdAt,
     members: Array.isArray(chatDetail.members) ? chatDetail.members : [],
   }
@@ -321,8 +334,11 @@ const updateChatMessages = (chatId, messagesData) => {
   chats.value[chatIndex] = {
     ...chats.value[chatIndex],
     name: messagesData.chat_name ?? chats.value[chatIndex].name,
+    quotation_id:
+      messagesData.quotation_id ?? messagesData.quotationId ?? chats.value[chatIndex].quotation_id,
     messages,
-    preview: lastMessage?.text ?? chats.value[chatIndex].preview,
+    description:
+      messagesData.description ?? messagesData.chat_description ?? chats.value[chatIndex].description,
     time: lastMessage?.time ?? chats.value[chatIndex].time,
   }
 }
@@ -556,8 +572,8 @@ onBeforeUnmount(closeChatWebSocket)
               </v-avatar>
             </template>
 
-            <v-list-item-title>{{ chat.name }}</v-list-item-title>
-            <v-list-item-subtitle>{{ chat.preview }}</v-list-item-subtitle>
+            <v-list-item-title>{{ chat.name }} #{{ chat.quotation_id }}</v-list-item-title>
+            <v-list-item-subtitle>{{ truncateText(chat.description) }}</v-list-item-subtitle>
 
             <template #append>
               <div class="chat-meta">
@@ -586,7 +602,8 @@ onBeforeUnmount(closeChatWebSocket)
             </v-avatar>
 
             <div>
-              <h2>{{ selectedChat.name }}</h2>
+              <h2>{{ selectedChat.name }} #{{ selectedChat.quotation_id }}</h2>
+              <p>{{ selectedChat.description }}</p>
               <p v-if="chatDetailLoading">Cargando miembros...</p>
               <p v-else-if="chatDetailError" class="conversation-error">{{ chatDetailError }}</p>
               <!-- <p v-else>{{ selectedChatMemberNames }}</p> -->

@@ -108,6 +108,18 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
         </div>
       </div>
 
+      <div>
+        <v-card>
+          <v-card-text>
+            <span>En relación a su solicitud de precios, nos es grato presentarle para su consideración la siguiente
+propuesta de equipos que, de acuerdo y con base en sus comentarios, creemos cumple ampliamente
+con sus expectativas.
+Sin más por el momento, esperamos que esta propuesta sea de su agrado, y quedamos de ustedes en
+espera de sus amables comentarios y atentos para resolver cualquier duda o aclaración al respecto.</span>
+          </v-card-text>
+        </v-card>
+      </div>
+
       <div class="info-grid">
         <v-card v-if="prospectInfo" class="info-card" variant="elevated">
           <v-card-title>Contacto</v-card-title>
@@ -176,7 +188,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
         </v-card-text>
       </v-card>
 
-      <v-card class="quotation-cost" variant="elevated">
+      <!--<v-card class="quotation-cost" variant="elevated">
         <v-card-text>
           <div>
             <span>Costo total</span>
@@ -184,7 +196,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
           </div>
           <v-icon icon="mdi-cash-multiple" size="42" />
         </v-card-text>
-      </v-card>
+      </v-card>-->
 
       <v-card v-if="prospectInfo?.comentario" class="comments-card" variant="elevated">
         <v-card-title>Comentarios</v-card-title>

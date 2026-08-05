@@ -156,6 +156,19 @@ watch(() => [props.quotationId, props.accessToken], loadScopes, { immediate: tru
           </v-data-table>
         </v-card-text>
       </v-card>
+
+      <v-card>
+        <v-card-text>
+          <span>
+            NOTA SOBRE ALCANCES:<br />
+• En el caso de que no se tengan los alcances descritos por producto, en blanco, estos estarán limitados a los rangos estipulados por cada equipo, en este caso es responsabilidad del
+cliente que los alcances por producto estén dentro del rango del equipo.<br />
+• Los alcances en verde indican que los alcances del producto estan dentro del rango del equipo o bien estos serán modificados para aceptar dichos alcances. <br />
+• Los alcances en rojo indica que el producto esta fuera del rango del equipo y que no podrá ser procesado por este.
+          </span>
+        </v-card-text>
+      </v-card>
+
     </template>
   </section>
 </template>

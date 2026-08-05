@@ -33,10 +33,32 @@
             >
               <v-text-field
                 autocomplete="off"
-                hint="Nombre del nuevo chat"
-                label="Nombre del chat"
+                hint="Numero de Cotizacion"
+                label="# Cotizacion"
+                type="number"
+                v-model="quotationId"
+              ></v-text-field>
+            </v-col>
+
+            <v-col
+              cols="12"
+            >
+              <v-text-field
+                autocomplete="off"
+                hint="Nombre de la empresa"
+                label="Nombre de la empresa"
                 v-model="chatName"
               ></v-text-field>
+            </v-col>
+
+            <v-col cols="12">
+              <v-text-field
+                autocomplete="off"
+                hint="Descripcion de la cotizacion"
+                label="Descripcion"
+                v-model="chatDescription"
+              >
+              </v-text-field>
             </v-col>
 
             <v-col
@@ -79,18 +101,6 @@
                 label="Contacto"
                 required
               ></v-select>-->
-            </v-col>
-
-            <v-col
-              cols="12"
-            >
-              <v-text-field
-                autocomplete="off"
-                hint="Numero de Cotizacion"
-                label="# Cotizacion"
-                type="number"
-                v-model="quotationId"
-              ></v-text-field>
             </v-col>
 
           </v-row>
@@ -136,6 +146,7 @@
     const chatsError = ref('')
     const userId = ref(null)
     const chatName = ref('')
+    const chatDescription = ref('')
     const quotationId = ref(null)
     const contactId = ref(null)
     const newChat = ref(null)
@@ -175,6 +186,7 @@
         try {
             newChat.value = await createLinkQuotation({
                 name: chatName.value,
+                description: chatDescription.value,
                 user_id: userId.value,
                 contact_ids: contactId.value.map(item => item.id),
                 quotation_id: quotationId.value

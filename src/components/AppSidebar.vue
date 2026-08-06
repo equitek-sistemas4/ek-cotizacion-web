@@ -1,13 +1,17 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getUnreadNotifications, readNotifications } from '@/services/notifications'
 import { useAuthStore } from '@/stores/auth'
 import logoImg from '@/assets/logo.png'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const collapsed = ref(false)
 const logoUrl = logoImg
+const unreadNotifications = ref([])
+let unreadNotificationsInterval = null
 
 const loggedUserName = computed(() => authStore.user?.name || authStore.user?.email || 'Usuario')
 
@@ -23,9 +27,90 @@ const navigationItems = computed(() =>
     })),
 )
 
+const unreadNotificationCounts = computed(() =>
+  unreadNotifications.value.reduce((counts, notification) => {
+    const section = notification.section
+
+    if (section) {
+      counts[section] = (counts[section] ?? 0) + 1
+    }
+
+    return counts
+  }, {}),
+)
+
+const loadUnreadNotifications = async () => {
+  if (!authStore.userId) {
+    unreadNotifications.value = []
+    return
+  }
+
+  try {
+    const notifications = await getUnreadNotifications(authStore.userId)
+    const activeSection = typeof route.name === 'string' ? route.name : null
+
+    unreadNotifications.value = notifications
+
+    if (!activeSection || !notifications.some((notification) => notification.section === activeSection)) {
+      return
+    }
+
+    try {
+      await readNotifications({
+        user_id: authStore.userId,
+        section: activeSection,
+      })
+
+      unreadNotifications.value = notifications.filter(
+        (notification) => notification.section !== activeSection,
+      )
+    } catch {
+      // El badge permanece oculto mientras el usuario se encuentre en esta sección.
+    }
+  } catch {
+    unreadNotifications.value = []
+  }
+}
+
+const markNotificationsAsRead = async (section) => {
+  if (!authStore.userId || !unreadNotificationCounts.value[section]) {
+    return
+  }
+
+  try {
+    await readNotifications({
+      user_id: authStore.userId,
+      section,
+    })
+
+    unreadNotifications.value = unreadNotifications.value.filter(
+      (notification) => notification.section !== section,
+    )
+  } catch {
+    // Se conserva el badge para reflejar que las notificaciones siguen pendientes.
+  }
+}
+
+const getUnreadNotificationCount = (section) => {
+  if (route.name === section) {
+    return 0
+  }
+
+  return unreadNotificationCounts.value[section] ?? 0
+}
+
 const logout = () => {
   router.push('/login')
 }
+
+onMounted(() => {
+  loadUnreadNotifications()
+  unreadNotificationsInterval = setInterval(loadUnreadNotifications, 60_000)
+})
+
+onBeforeUnmount(() => {
+  clearInterval(unreadNotificationsInterval)
+})
 </script>
 
 <template>
@@ -64,7 +149,17 @@ const logout = () => {
           :to="item.path"
           color="primary"
           rounded="lg"
-        />
+          @click="markNotificationsAsRead(item.name)"
+        >
+          <template #append>
+            <v-badge
+              v-if="getUnreadNotificationCount(item.name)"
+              :content="getUnreadNotificationCount(item.name)"
+              color="primary"
+              inline
+            />
+          </template>
+        </v-list-item>
       </v-list>
 
       <v-spacer />

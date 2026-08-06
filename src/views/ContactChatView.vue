@@ -7,6 +7,7 @@ import {
   sendChatMessage,
   getChatMemberByCode,
 } from '@/services/chats'
+import { createNotification } from '@/services/notifications'
 import dialogCreateRequest from '@/components/dialogCreateRequest.vue'
 import infoChatMembers from '@/components/infoChatMembers.vue'
 import infoClientQuotation from '@/components/infoClientQuotation.vue'
@@ -17,6 +18,7 @@ const access_code = computed(() => route.params.access_code)
 
 const chatId = ref(null)
 const contactId = ref(null)
+const userId = ref(null)
 const token = ref('')
 const chat = ref(null)
 const messages = ref([])
@@ -36,6 +38,7 @@ const infoChatMembersKey = ref(0)
 let reconnectTimer = null
 
 const chatTitle = computed(() => chat.value?.name + (chat.value?.quotation_id ? ` #${chat.value.quotation_id}` : '') || 'Chat')
+const chatDescription = computed(() => chat.value?.description || '')
 
 const contactName = computed(() => {
   const members = chat.value?.members ?? []
@@ -273,6 +276,7 @@ const loadChat = async () => {
     const chatMember = await getChatMemberByCode(access_code.value)
     chatId.value = chatMember?.chat_id ?? null
     contactId.value = chatMember?.contact_id ?? null
+    userId.value = chatMember?.user_id ?? null
     token.value = chatMember?.token ?? null
     quotationId.value = chatMember?.quotation_id ?? null
 
@@ -358,6 +362,11 @@ const sendMessage = async () => {
       accessToken: token.value,
     })
 
+    await createNotification({
+      user_id: userId.value,
+      section: 'chat',
+    })
+
     message.value = ''
     clearAttachment()
   } catch (error) {
@@ -423,7 +432,8 @@ onBeforeUnmount(() => {
 
             <div>
               <h1>{{ chatTitle }}</h1>
-              <p>{{ contactName }}</p>
+              <p>{{ chatDescription }}</p>
+              <!--<p>{{ contactName }}</p>-->
             </div>
           </div>
 

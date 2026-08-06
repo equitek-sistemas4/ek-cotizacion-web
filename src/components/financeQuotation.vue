@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { getQuotationInfo } from '@/services/quotations'
+import arrendamientoImg from '@/assets/arrendamiento.PNG'
 
 const props = defineProps({
   quotationId: { type: [Number, String], default: null },
@@ -17,7 +18,7 @@ const monthlyPayment = ref(0)
 const formatCurrency = (value) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(value) || 0)
 
-const discountedCost = computed(() => projectCost.value * 0.88)
+const discountedCost = computed(() => projectCost.value * 0.12)
 const traditionalPayment = computed(() => discountedCost.value / 2)
 const downPayment = computed(() => projectCost.value * (Number(downPaymentPercent.value) / 100))
 const residualValue = computed(() => projectCost.value * 0.01)
@@ -74,6 +75,42 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
         <p class="finance-eyebrow">Cotización</p>
         <h1>Análisis Financiero</h1>
       </div>
+
+      <v-card class="finance-plans-card" variant="flat">
+        <v-card-text class="finance-plans-content">
+          <div class="finance-plans-title">
+            CONOCE NUESTROS PLANES DE FINANCIAMIENTO Y ¡OBTÉN GRANDES BENEFICIOS!
+          </div>
+
+          <div class="finance-benefits">
+            <div class="finance-benefits-column">
+              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> Aumentar tu capacidad de producción.</p>
+              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> Modernizar tu línea de envasado.</p>
+            </div>
+            <div class="finance-benefits-column">
+              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> Arrancar ese nuevo proyecto.</p>
+              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> Con un <strong>R.O.I.</strong> muy atractivo</p>
+            </div>
+            <div class="finance-benefits-column">
+              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> ¡Sin descapitalizarse!</p>
+            </div>
+          </div>
+
+          <v-img
+            :src="arrendamientoImg"
+            alt="Arrendamiento"
+            class="equipment-image"
+            contain
+          />
+
+          <p class="finance-plans-note">
+            En Equitek contamos con <strong>planes de financiamiento</strong> mediante arrendamiento puro o leasing,
+            <strong>te ayudamos</strong> a diseñar un <strong>plan</strong> de acuerdo a tus necesidades, con un
+            <strong>enganche mínimo</strong> y distintas <strong>opciones de plazo.</strong>
+            <span>*Nota: La imagen de la serie es ilustrativa. No de la presente cotización.</span>
+          </p>
+        </v-card-text>
+      </v-card>
 
       <v-card variant="elevated">
         <v-card-text class="promotion">
@@ -193,6 +230,15 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
 .finance-state { display: grid; place-items: center; gap: 12px; min-height: 240px; color: rgb(var(--v-theme-textMuted)); }
 .finance-eyebrow { margin: 0; color: rgb(var(--v-theme-primary)); font-size: .84rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.2; }
+.finance-plans-card { overflow: hidden; }
+.finance-plans-content { padding: 2px 12px 12px; }
+.finance-plans-title { padding: 10px 12px; border-radius: 4px; background: rgb(var(--v-theme-primary)); color: white; font-size: clamp(1rem, 2.2vw, 1.3rem); font-weight: 800; line-height: 1.2; text-align: center; }
+.finance-benefits { display: grid; grid-template-columns: 1.25fr 1fr .8fr; gap: 16px; max-width: 940px; margin: 12px auto 0; }
+.finance-benefits-column { display: grid; align-content: start; gap: 6px; }
+.finance-benefits p { display: flex; align-items: center; gap: 8px; margin: 0; color: rgb(var(--v-theme-textPrimary)); font-size: .95rem; }
+.equipment-image { max-width: 1040px; margin: 24px auto 16px; }
+.finance-plans-note { margin: 0; color: rgb(var(--v-theme-textPrimary)); font-size: .9rem; line-height: 1.6; }
+.finance-plans-note span { white-space: nowrap; }
 .promotion, .finance-heading { text-align: center; }
 .promotion h2, .promotion h3, .finance-heading h2 { margin: 0; color: rgb(var(--v-theme-primary)); font-size: 1.15rem; }
 .promotion > p, .finance-heading p { margin: 8px 0 20px; color: rgb(var(--v-theme-textMuted)); }
@@ -205,6 +251,10 @@ h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1
 @media (max-width: 700px) {
   .finance-content { gap: 20px; }
   .finance-controls { grid-template-columns: 1fr; gap: 4px; }
+  .finance-benefits { grid-template-columns: 1fr; gap: 8px; }
+  .equipment-image { margin: 20px auto 14px; }
+  .finance-plans-note { font-size: .84rem; }
+  .finance-plans-note span { white-space: normal; }
   .promotion h3, .finance-heading h2 { font-size: 1rem; line-height: 1.4; }
   .promotion > p, .finance-heading p { margin-bottom: 16px; font-size: .9rem; }
   .finance-note, .finance-disclaimer { font-size: .84rem; }

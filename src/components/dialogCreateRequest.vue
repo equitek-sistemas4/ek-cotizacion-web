@@ -98,8 +98,12 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { getChatMemberByCode } from '@/services/chats'
 import { createContactRequest } from '@/services/contacts'
+import { createNotification } from '@/services/notifications'
 
+const route = useRoute()
 const emit = defineEmits(['contact-created'])
 const props = defineProps({
   chatId: {
@@ -160,6 +164,15 @@ const handleCreateContact = async () => {
       contact_company: form.value.company,
       contact_position: form.value.position,
     })
+
+    const chatMember = await getChatMemberByCode(route.params.access_code)
+
+    if (chatMember?.user_id) {
+      await createNotification({
+        user_id: chatMember.user_id,
+        section: 'contact-requests',
+      })
+    }
 
     emit('contact-created', { chat_id: props.chatId })
     closeDialog()

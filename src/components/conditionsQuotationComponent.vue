@@ -59,15 +59,48 @@ watch(() => [props.quotationId, props.accessToken], loadConditions, { immediate:
         <h1>Condiciones comerciales</h1>
       </div>
 
-      <div class="conditions-list">
-        <v-card v-for="condition in conditions" :key="condition.idconds" variant="elevated">
-          <v-card-title>{{ condition.tipo }}</v-card-title>
-          <v-card-text>
-            <p class="condition-description">{{ condition.descripcion }}</p>
-            <p v-if="condition.nota" class="condition-note">Nota: {{ condition.nota }}</p>
-          </v-card-text>
-        </v-card>
-      </div>
+      <v-row>
+        <v-col cols="8">
+          <div class="conditions-list">
+            <v-card v-for="condition in conditions" :key="condition.idconds" variant="elevated">
+              <v-card-title><strong>{{ condition.tipo }}</strong></v-card-title>
+              <v-card-text>
+                <p class="condition-description">{{ condition.descripcion }}</p>
+                <p v-if="condition.nota" class="condition-note">Nota: {{ condition.nota }}</p>
+              </v-card-text>
+            </v-card>
+          </div>
+        </v-col>
+        <v-col cols="4">
+          <v-card>
+            <v-card-title><strong>REFERENCIAS BANCARIAS</strong></v-card-title>
+            <v-card-text>
+              <span>RFC: EQU-000919-7M3 <br/><br/>
+                REFERENCIAS BANCARIAS <br/>
+                Beneficiario: EQUITEK, S.A. DE
+                C.V. <br/><br/>
+                BANCO: BANAMEX Moneda:
+                PESOS Sucursal: 4270 Cuenta:
+                14554 <br/> Clabe: 0025 8042 7000
+                1455 45 <br/><br/>
+                BANCO: BANAMEX Moneda:
+                DOLARES Sucursal: 4270
+                Cuenta: 9000521 <br/> Clabe: 0025
+                8042 7090 0052 13 <br/><br/>
+                BANCO: BANCOMER Moneda:
+                PESOS Sucursal: 003 Cuenta:
+                0453297500 <br/> Clabe: 0125 8000
+                4532 9750 07 <br/><br/>
+                BANCO: BANCOMER Moneda:
+                DOLARES Sucursal: 003 Cuenta:
+                0114655613 <br/> Clabe: 0125 8000
+                1146 5561 32
+              </span>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+      
     </template>
   </section>
 </template>

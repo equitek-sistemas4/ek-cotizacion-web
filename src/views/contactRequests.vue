@@ -77,9 +77,20 @@
                 prepend-icon="mdi-check"
                 size="small"
                 variant="elevated"
-                @click="approveRequest(request.id)"
+                @click="approveRequest(request)"
               >
                 Aceptar
+              </v-btn>
+              <v-btn
+                v-if="request.status === 'pending'"
+                :loading="rejectingId === request.id"
+                color="error"
+                prepend-icon="mdi-close"
+                size="small"
+                variant="elevated"
+                @click="rejectRequest(request.id)"
+              >
+                Rechazar
               </v-btn>
             </v-card-actions>
           </v-card>
@@ -98,11 +109,13 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { approveContactRequest, getContactsRequests } from '@/services/contacts'
+import { approveContactRequest, getContactsRequests, rejectContactRequest } from '@/services/contacts'
+import { sendTemplateAddContact } from '@/services/whatsapp'
 
 const requests = ref([])
 const loading = ref(false)
 const approvingId = ref(null)
+const rejectingId = ref(null)
 const errorMessage = ref('')
 const selectedStatus = ref('pending')
 
@@ -144,18 +157,47 @@ const loadContactRequests = async () => {
   }
 }
 
-const approveRequest = async (requestId) => {
-  approvingId.value = requestId
+const getAccessCode = (approval) =>
+  approval?.access_code ?? approval?.chat_member?.access_code ?? approval?.member?.access_code
+
+const approveRequest = async (request) => {
+  approvingId.value = request.id
   errorMessage.value = ''
 
   try {
-    await approveContactRequest(requestId)
+    const approval = await approveContactRequest(request.id)
+    const accessCode = getAccessCode(approval)
+
+    if (!request.contact_phone_number || !accessCode) {
+      throw new Error('No se encontró el teléfono del contacto o el código de acceso del chat.')
+    }
+
+    await sendTemplateAddContact({
+      to: request.contact_phone_number,
+      text: accessCode,
+    })
+
     await loadContactRequests()
   } catch (error) {
     console.error('Error al aprobar solicitud de contacto:', error)
-    errorMessage.value = error.response?.data?.message || 'No se pudo aprobar la solicitud de contacto.'
+    errorMessage.value = error.response?.data?.message || error.message || 'No se pudo aprobar la solicitud de contacto.'
   } finally {
     approvingId.value = null
+  }
+}
+
+const rejectRequest = async (requestId) => {
+  rejectingId.value = requestId
+  errorMessage.value = ''
+
+  try {
+    await rejectContactRequest(requestId)
+    await loadContactRequests()
+  } catch (error) {
+    console.error('Error al rechazar solicitud de contacto:', error)
+    errorMessage.value = error.response?.data?.message || 'No se pudo rechazar la solicitud de contacto.'
+  } finally {
+    rejectingId.value = null
   }
 }
 

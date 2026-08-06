@@ -61,7 +61,7 @@ const router = createRouter({
       component: () => import('../views/contactRequests.vue'),
       meta: {
         icon: 'mdi-account-clock-outline',
-        navLabel: 'Solicitudes de contacto',
+        navLabel: 'Solicitudes contacto',
         showInNav: true,
       },
     },

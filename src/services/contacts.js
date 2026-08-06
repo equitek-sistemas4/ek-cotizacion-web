@@ -35,6 +35,20 @@ export const approveContactRequest = async (contact_request_id) => {
 }
 
 
+export const rejectContactRequest = async (contact_request_id) => {
+  const body = new URLSearchParams()
+  body.append('contact_request_id', contact_request_id)
+
+  const response = await contactsApi.post(`/contacts/requests/${contact_request_id}/reject`, body, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  })
+
+  return response.data?.data ?? response.data
+}
+
+
 export const getContactsAvailableChat = async (chatId) => {
   try {
     const response = await contactsApi.get(`/contacts/availables/chat/${chatId}`)

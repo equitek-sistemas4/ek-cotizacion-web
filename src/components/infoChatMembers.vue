@@ -62,6 +62,7 @@ const loadChat = async () => {
 
   try {
     chat.value = await getChatById(props.chatId)
+    console.log('Chat details loaded:', chat.value)
   } catch (error) {
     errorMessage.value = error.message || 'Ocurrio un error al cargar la informacion del chat.'
   } finally {
@@ -102,7 +103,6 @@ const sendMemberUrlByWhatsapp = async (member) => {
 }
 
 async function removeMemberFromChat(member) {
-  console.log('Attempting to remove member from chat:', member)
   if (!props.chatId || !member?.id) {
     return
   }
@@ -246,7 +246,7 @@ watch(() => props.chatId, loadChat, { immediate: true })
 
                     <div>
                         <p>Chat #{{ chat.id }}</p>
-                        <h2>{{ chat.name }}</h2>
+                        <h2>{{ chat.name }} #{{ chat.quotation_id }} <small> - {{ chat.description }}</small></h2>
                         <small>Creado: {{ formatDate(chat.created_at) }}</small>
                     </div>
                     </header>

@@ -16,7 +16,7 @@ const loginLoading = ref(false)
 const loginError = ref('')
 
 const requiredRule = (value) => Boolean(value) || 'Este campo es requerido'
-const emailRule = (value) => /.+@.+\..+/.test(value) || 'Ingresa un correo valido'
+//const emailRule = (value) => /.+@.+\..+/.test(value) || 'Ingresa un correo valido'
 
 const handleSubmit = async () => {
   const validation = await form.value?.validate()
@@ -72,15 +72,15 @@ const handleSubmit = async () => {
         <v-form ref="form" class="login-form" @submit.prevent="handleSubmit">
           <v-text-field
             v-model="email"
-            autocomplete="email"
+            autocomplete="username"
             color="primary"
-            label="Correo electronico"
-            name="email"
-            placeholder="usuario@empresa.com"
-            prepend-inner-icon="mdi-email-outline"
+            label="Usuario"
+            name="username"
+            placeholder="Ingresa tu nombre de usuario"
+            prepend-inner-icon="mdi-account-outline"
             required
-            :rules="[requiredRule, emailRule]"
-            type="email"
+            :rules="[requiredRule]"
+            type="text"
             variant="outlined"
           />
 

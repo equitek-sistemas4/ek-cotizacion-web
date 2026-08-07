@@ -5,13 +5,13 @@
         <v-card-title>
           <div class="d-flex justify-space-between align-center mb-6" style="padding: 10px">
             <h1 class="text-h4">Usuarios</h1>
-            <dialogCreateUser @user-created="loadUsers">
+            <!--<dialogCreateUser @user-created="loadUsers">
               <template #activator="{ props }">
                 <v-btn v-bind="props" color="primary" prepend-icon="mdi-plus">
                   Nuevo usuario
                 </v-btn>
               </template>
-            </dialogCreateUser>
+            </dialogCreateUser>-->
           </div>
         </v-card-title>
         <v-divider />
@@ -22,7 +22,7 @@
           class="users-table elevation-0"
           style="padding: 10px"
         >
-          <template #item.actions="{ item }">
+          <!--<template #item.actions="{ item }">
             <div class="d-flex gap-2">
               <v-btn
                 color="primary"
@@ -41,7 +41,7 @@
                 @click="deleteUserConfirm(item)"
               />
             </div>
-          </template>
+          </template>-->
 
           <template #no-data>
             <v-empty-state
@@ -105,7 +105,7 @@ const headers = [
   { title: 'Nombre', key: 'name', align: 'start' },
   { title: 'Correo electrónico', key: 'email', align: 'start' },
   { title: 'Teléfono', key: 'phone_number', align: 'start' },
-  { title: 'Acciones', key: 'actions', align: 'start', sortable: false },
+  //{ title: 'Acciones', key: 'actions', align: 'start', sortable: false },
 ]
 
 const editUser = (user) => {

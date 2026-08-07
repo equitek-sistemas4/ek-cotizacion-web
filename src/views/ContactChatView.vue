@@ -286,7 +286,6 @@ const loadChat = async () => {
     ])
 
     chat.value = chatDetail
-    console.log('Chat details loaded:', chat.value)
     messages.value = Array.isArray(messagesData?.messages)
       ? messagesData.messages.map(normalizeMessage)
       : []

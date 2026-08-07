@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { getQuotationProducts } from '@/services/quotations'
 
 const props = defineProps({
@@ -11,6 +11,8 @@ const loading = ref(false)
 const errorMessage = ref('')
 const products = ref([])
 const productFiles = ref({})
+const productImagePreviews = ref({})
+const defaultProductImage = 'https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg'
 const presentationHeaders = [
   { title: 'Presentación', key: 'presentacion' },
   { title: 'Producción por minuto', key: 'produccion' },
@@ -18,16 +20,40 @@ const presentationHeaders = [
 ]
 
 const getProductFiles = (product) => productFiles.value[product?.idprod] ?? []
+const getProductImage = (product) => productImagePreviews.value[product?.idprod] ?? defaultProductImage
+
+const revokeProductPreview = (productId) => {
+  const preview = productImagePreviews.value[productId]
+
+  if (preview) {
+    URL.revokeObjectURL(preview)
+  }
+}
 
 const setProductFiles = (product, files) => {
-  if (!product?.idprod) {
+  if (product?.idprod == null) {
     return
   }
 
+  const normalizedFiles = Array.isArray(files) ? files : files ? [files] : []
+
   productFiles.value = {
     ...productFiles.value,
-    [product.idprod]: Array.isArray(files) ? files : files ? [files] : [],
+    [product.idprod]: normalizedFiles,
   }
+
+  revokeProductPreview(product.idprod)
+
+  const image = normalizedFiles.find((file) => file?.type?.startsWith('image/'))
+  const previews = { ...productImagePreviews.value }
+
+  if (image) {
+    previews[product.idprod] = URL.createObjectURL(image)
+  } else {
+    delete previews[product.idprod]
+  }
+
+  productImagePreviews.value = previews
 }
 
 const loadProducts = async () => {
@@ -59,6 +85,10 @@ const loadProducts = async () => {
 }
 
 watch(() => [props.quotationId, props.accessToken], loadProducts, { immediate: true })
+
+onBeforeUnmount(() => {
+  Object.values(productImagePreviews.value).forEach((preview) => URL.revokeObjectURL(preview))
+})
 </script>
 
 <template>
@@ -92,35 +122,55 @@ producto en su caso.
         <v-card-title>{{ product.producto }}</v-card-title>
         <v-card-subtitle v-if="product.descripcion">{{ product.descripcion }}</v-card-subtitle>
         <v-card-text>
-          <v-data-table
-            :headers="presentationHeaders"
-            :items="(product.Presentacion ?? []).map((presentation) => ({
-              idpresen: presentation.idpresen,
-              presentacion: `${presentation.presentacion ?? ''} ${presentation.medida ?? ''}`.trim(),
-              produccion: presentation.produccion || 'Sin información',
-              comentario: presentation.comentario || '—',
-            }))"
-            :items-per-page="-1"
-            hide-default-footer
-            density="comfortable"
-          />
 
-          <section class="product-files">
-            <h3>Archivos del producto</h3>
-            <v-file-input
-              :model-value="getProductFiles(product)"
-              accept="image/*,video/*"
-              chips
-              clearable
-              density="compact"
-              hide-details
-              label="Agregar fotos o videos"
-              multiple
-              prepend-icon="mdi-paperclip"
-              variant="outlined"
-              @update:model-value="setProductFiles(product, $event)"
-            />
-          </section>
+          <v-row>
+            <v-col cols="8">
+              <v-data-table
+                :headers="presentationHeaders"
+                :items="(product.Presentacion ?? []).map((presentation) => ({
+                  idpresen: presentation.idpresen,
+                  presentacion: `${presentation.presentacion ?? ''} ${presentation.medida ?? ''}`.trim(),
+                  produccion: presentation.produccion || 'Sin información',
+                  comentario: presentation.comentario || '—',
+                }))"
+                :items-per-page="-1"
+                hide-default-footer
+                density="comfortable"
+              />
+
+              <section class="product-files">
+                <h3>Archivos del producto</h3>
+                <v-file-input
+                  :model-value="getProductFiles(product)"
+                  accept="image/*,video/*"
+                  chips
+                  clearable
+                  density="compact"
+                  hide-details
+                  label="Agregar fotos o videos"
+                  multiple
+                  prepend-icon="mdi-paperclip"
+                  variant="outlined"
+                  @update:model-value="setProductFiles(product, $event)"
+                />
+                <v-btn
+                  color="primary"
+                >
+                  Subir archivo
+                  <v-icon>mdi-upload</v-icon>
+                </v-btn>
+              </section>
+            </v-col>
+            <v-col cols="4">
+              <v-img
+                :src="getProductImage(product)"
+                alt="Producto"
+                class="product-image"
+                cover
+              />
+            </v-col>
+          </v-row>
+          
         </v-card-text>
       </v-card>
     </template>
@@ -162,5 +212,11 @@ h1 {
   color: rgb(var(--v-theme-textPrimary));
   font-size: clamp(1.6rem, 4vw, 2.3rem);
   line-height: 1.2;
+}
+.product-image {
+  width: 100%;
+  height: 100%;
+  margin-bottom: 16px;
+  border-radius: 8px;
 }
 </style>

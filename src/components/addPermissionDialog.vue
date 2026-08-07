@@ -101,7 +101,6 @@ const closeDialog = () => {
 }
 
 const save = async () => {
-  console.log(selectedPermissionIds. value)
   saving.value = true
   errorMessage.value = ''
   try {

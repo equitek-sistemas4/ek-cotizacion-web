@@ -439,6 +439,8 @@ onBeforeUnmount(() => {
           <div class="quotation-actions">
             <dialogCreateRequest
               :chat-id="chatId"
+              :contact-id="contactId"
+              :access-token="token"
               @contact-created="refreshSelectedChat"
             >
               <template #activator="{ props }">

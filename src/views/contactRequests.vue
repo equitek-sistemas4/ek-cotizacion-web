@@ -37,6 +37,10 @@
         {{ errorMessage }}
       </v-alert>
 
+      <v-alert v-if="warningMessage" type="warning" class="mb-4">
+        {{ warningMessage }}
+      </v-alert>
+
       <v-row v-if="requests.length">
         <v-col v-for="request in requests" :key="request.id" cols="12" md="6" lg="4">
           <v-card class="request-card h-100" variant="elevated">
@@ -117,6 +121,7 @@ const loading = ref(false)
 const approvingId = ref(null)
 const rejectingId = ref(null)
 const errorMessage = ref('')
+const warningMessage = ref('')
 const selectedStatus = ref('pending')
 
 const statusOptions = [
@@ -163,6 +168,7 @@ const getAccessCode = (approval) =>
 const approveRequest = async (request) => {
   approvingId.value = request.id
   errorMessage.value = ''
+  warningMessage.value = ''
 
   try {
     const approval = await approveContactRequest(request.id)
@@ -172,10 +178,15 @@ const approveRequest = async (request) => {
       throw new Error('No se encontró el teléfono del contacto o el código de acceso del chat.')
     }
 
-    await sendTemplateAddContact({
-      to: request.contact_phone_number,
-      text: accessCode,
-    })
+    try {
+      await sendTemplateAddContact({
+        to: request.contact_phone_number,
+        text: accessCode,
+      })
+    } catch (error) {
+      console.error('Error al enviar mensaje de acceso al contacto:', error)
+      warningMessage.value = 'La solicitud fue aprobada, pero no se pudo enviar el mensaje de acceso al contacto.'
+    }
 
     await loadContactRequests()
   } catch (error) {

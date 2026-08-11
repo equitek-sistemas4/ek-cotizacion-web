@@ -102,17 +102,23 @@ export const createContactRequest = async ({
   chat_id,
   contact_name,
   contact_phone_number,
+  contact_email,
   contact_display_name,
   contact_company,
   contact_position,
+  idempresa_contacto,
+  fk_idempresa,
 }) => {
   const body = new URLSearchParams()
   body.append('chat_id', chat_id)
   body.append('contact_name', contact_name)
   body.append('contact_phone_number', contact_phone_number)
+  body.append('contact_email', contact_email)
   body.append('contact_display_name', contact_display_name)
   body.append('contact_company', contact_company)
   body.append('contact_position', contact_position)
+  body.append('idempresa_contacto', idempresa_contacto)
+  body.append('fk_idempresa', fk_idempresa)
   const response = await contactsApi.post(`/contacts/create-request`, body, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

@@ -1,7 +1,12 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { getQuotationEquipment } from '@/services/quotations'
-import dvlAgroquimicosImage from '@/assets/Equipos/DVL-Agroquimicos-2-1024x577.webp'
+
+const equipmentImages = import.meta.glob('../assets/Equipos/*/Equipo-*', {
+  eager: true,
+  import: 'default',
+})
+const defaultEquipmentImage = 'https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg'
 
 const props = defineProps({
   quotationId: { type: [Number, String], default: null },
@@ -21,6 +26,16 @@ const formatCurrency = (value) => {
     style: 'currency',
     currency: 'MXN',
   }).format(Number(value))
+}
+
+const getEquipmentImage = (serie) => {
+  const normalizedSerie = String(serie || '').trim().toUpperCase()
+
+  if (!normalizedSerie) return defaultEquipmentImage
+
+  return Object.entries(equipmentImages).find(([path]) =>
+    path.includes(`/Equipos/${normalizedSerie}/Equipo-${normalizedSerie}.`),
+  )?.[1] || defaultEquipmentImage
 }
 
 const loadEquipment = async () => {
@@ -108,10 +123,10 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
 
               <v-col cols="6">
                 <v-img
-                  :src="dvlAgroquimicosImage"
-                  alt="DVL Agroquímicos"
+                  :src="getEquipmentImage(item.serie)"
+                  alt="Imagen del equipo"
                   class="equipment-image"
-                  cover
+                  contain
                 />
                 <!--<iframe
                   class="equipment-video"

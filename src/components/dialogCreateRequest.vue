@@ -35,6 +35,18 @@
 
           <v-col cols="12">
             <v-text-field
+              v-model="form.email"
+              autocomplete="email"
+              label="Correo electrónico"
+              placeholder="Ingrese el correo electrónico"
+              type="email"
+              outlined
+              dense
+            />
+          </v-col>
+
+          <v-col cols="12">
+            <v-text-field
               autocomplete="off"
               v-model="form.display_name"
               label="Nombre Mostrado"
@@ -104,7 +116,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { getChatMemberByCode } from '@/services/chats'
+import { getChatById, getChatMemberByCode } from '@/services/chats'
 import { createContactRequest } from '@/services/contacts'
 import { createNotification } from '@/services/notifications'
 
@@ -115,6 +127,14 @@ const props = defineProps({
     type: [String, Number],
     required: true,
   },
+  contactId: {
+    type: [String, Number],
+    default: null,
+  },
+  accessToken: {
+    type: String,
+    default: '',
+  },
 })
 
 const dialog = ref(false)
@@ -124,6 +144,7 @@ const errorMessage = ref('')
 const form = ref({
   name: '',
   phone_number: '',
+  email: '',
   display_name: '',
   company: '',
   position: '',
@@ -138,6 +159,7 @@ const clearForm = () => {
   form.value = {
     name: '',
     phone_number: '',
+    email: '',
     display_name: '',
     company: '',
     position: '',
@@ -161,13 +183,26 @@ const handleCreateContact = async () => {
   errorMessage.value = ''
 
   try {
+    const chat = await getChatById(props.chatId, { accessToken: props.accessToken })
+    const member = chat?.members?.find(
+      (item) => String(item.contact_id) === String(props.contactId),
+    )
+    const contact = member?.contact
+
+    if (!contact?.idempresa_contacto || !contact?.fk_idempresa) {
+      throw new Error('No se pudo obtener la información de empresa del contacto del chat.')
+    }
+
     await createContactRequest({
       chat_id: props.chatId,
       contact_name: form.value.name,
       contact_phone_number: form.value.phone_number,
+      contact_email: form.value.email,
       contact_display_name: form.value.display_name,
       contact_company: form.value.company,
       contact_position: form.value.position,
+      idempresa_contacto: contact.idempresa_contacto,
+      fk_idempresa: contact.fk_idempresa,
     })
 
     const chatMember = await getChatMemberByCode(route.params.access_code)

@@ -613,7 +613,11 @@ onBeforeUnmount(closeChatWebSocket)
           <div class="conversation-actions">
             <!--<v-btn color="primary" icon="mdi-phone-outline" size="small" variant="text" />-->
             <!--<v-btn color="primary" icon="mdi-account-multiple-plus" size="small" variant="text" />-->
-            <dialogAddMember :chat-id="selectedChatId" @member-added="refreshSelectedChat" />
+            <dialogAddMember
+              :chat-id="selectedChatId"
+              :quotation-id="selectedChat.quotation_id"
+              @member-added="refreshSelectedChat"
+            />
             <infoChatMembers :key="infoChatMembersKey" :chat-id="selectedChatId"/>
           </div>
         </header>

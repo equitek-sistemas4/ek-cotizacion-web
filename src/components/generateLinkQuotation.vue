@@ -134,8 +134,8 @@
 <script setup>
     import { shallowRef, onMounted, ref, watch } from 'vue'
     import { useAuthStore } from '@/stores/auth'
-    import { createLinkQuotation } from '@/services/quotations'
-    import { getContacts } from '@/services/contacts'
+    import { createLinkQuotation, getQuotationContacts } from '@/services/quotations'
+    import { createContact, validateContactCompany } from '@/services/contacts'
     import MessageAlertDialog from '@/components/MessageAlertDialog.vue'
 
     const emit = defineEmits(['created'])
@@ -169,14 +169,28 @@
     }
 
 
-    const fetchContacts = async () => {
+    const loadQuotationContacts = async (quotation_id) => {
         contactsError.value = ''
+        contactId.value = null
+
+        if (!quotation_id) {
+            contacts.value = []
+            return
+        }
 
         try {
-            const contactsList = await getContacts()
-            contacts.value = contactsList
+            const contactsList = await getQuotationContacts(quotation_id)
+            contacts.value = Array.isArray(contactsList)
+                ? contactsList.map((contact) => ({
+                    ...contact,
+                    id: contact.id ?? contact.idempresa_contacto,
+                    name: contact.nombre ?? contact.name ?? '',
+                    company: contact.empresa ?? contact.company ?? '',
+                }))
+                : []
         } catch (error) {
             contactsError.value = error.message || 'Ocurrio un error al cargar los contactos.'
+            contacts.value = []
         }
     }
 
@@ -184,11 +198,56 @@
         chatsError.value = ''
 
         try {
+            const selectedContacts = Array.isArray(contactId.value) ? contactId.value : []
+
+            if (!selectedContacts.length) {
+                throw new Error('Selecciona al menos un contacto.')
+            }
+
+            const contactIds = await Promise.all(selectedContacts.map(async (contact) => {
+                console.log('Selected contact:', contact)
+                const companyContactId = contact.idempresa_contacto
+
+                if (!companyContactId) {
+                    throw new Error('El contacto seleccionado no tiene un identificador de empresa.')
+                }
+
+                const validatedContact = await validateContactCompany(companyContactId)
+                console.log('Validated contact:', validatedContact)
+
+                if (validatedContact?.exists === false) {
+                    const createdContact = await createContact({
+                        name: contact.nombre ?? contact.name ?? '',
+                        phone_number: contact.tel_directo ?? contact.phone_number ?? contact.phone ?? '',
+                        display_name: contact.nombre ?? contact.display_name ?? contact.nombre ?? contact.name ?? '',
+                        company: contact.empresa ?? contact.company ?? '',
+                        position: contact.funcion ?? contact.position ?? contact.funcion ?? '',
+                        idempresa_contacto: companyContactId,
+                        fk_idempresa: contact.fk_idempresa ?? contact.fk_idempresa,
+                    })
+                    const createdContactId = createdContact?.id ?? createdContact?.contact_id
+
+                    if (!createdContactId) {
+                        throw new Error('No se obtuvo el identificador del contacto creado.')
+                    }
+
+                    return createdContactId
+                }
+
+                const existingContactId = validatedContact?.data.id
+                console.log('Existing contact ID:', existingContactId)
+                if (!existingContactId) {
+                    throw new Error('No se pudo validar el contacto seleccionado.')
+                }
+
+                return existingContactId
+            }))
+
             newChat.value = await createLinkQuotation({
                 name: chatName.value,
                 description: chatDescription.value,
                 user_id: userId.value,
-                contact_ids: contactId.value.map(item => item.id),
+                contact_ids: contactIds,
                 quotation_id: quotationId.value
             })
             showAlert({
@@ -210,8 +269,9 @@
 
     onMounted(() => {
         userId.value = authStore.userId
-        fetchContacts()
     })
+
+    watch(quotationId, loadQuotationContacts, { immediate: true })
 
     watch(dialog, (isOpen) => {
         if (!isOpen) {

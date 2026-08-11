@@ -1,5 +1,12 @@
 <template>
   <div class="pa-4 text-center">
+    <MessageAlertDialog
+      v-model="alertDialog"
+      :message="alertMessage"
+      :title="alertTitle"
+      :type="alertType"
+    />
+
     <v-dialog v-model="dialog" max-width="600">
       <template v-if="showActivator" v-slot:activator="{ props: activatorProps }">
         <v-btn
@@ -37,15 +44,15 @@
                 <template v-slot:chip="{ props, item }">
                   <v-chip
                     v-bind="props"
-                    :text="item.raw.name"
+                    :text="item.raw.nombre"
                   ></v-chip>
                 </template>
 
                 <template v-slot:item="{ props, item }">
                   <v-list-item
                     v-bind="props"
-                    :subtitle="item.raw.company"
-                    :title="item.raw.name"
+                    :subtitle="item.raw.empresa"
+                    :title="item.raw.nombre"
                   ></v-list-item>
                 </template>
               </v-autocomplete>
@@ -82,7 +89,9 @@
 <script setup>
     import { ref, watch } from 'vue'
     import { addMember } from '@/services/chats'
-    import { getContactsAvailableChat } from '@/services/contacts'
+    import { createContact, validateContactCompany } from '@/services/contacts'
+    import { getQuotationContacts } from '@/services/quotations'
+    import MessageAlertDialog from '@/components/MessageAlertDialog.vue'
 
     const props = defineProps({
         showActivator: {
@@ -90,6 +99,10 @@
             default: true,
         },
         chatId: {
+            type: [Number, String],
+            default: null,
+        },
+        quotationId: {
             type: [Number, String],
             default: null,
         },
@@ -118,7 +131,7 @@
         contactId.value = null
     }
 
-    const loadContactsAvailableChat = async (chat_id) => {
+    /*const loadContactsAvailableChat = async (chat_id) => {
         contactsError.value = ''
         clearForm()
 
@@ -138,15 +151,81 @@
                 message: contactsError.value,
             })
         }
+    }*/
+
+    const loadQuotationContacts = async (quotation_id) => {
+        contactsError.value = ''
+        clearForm()
+
+        if (!quotation_id) {
+            contacts.value = []
+            return
+        }
+
+        try {
+            const contactsList = await getQuotationContacts(quotation_id)
+            contacts.value = contactsList
+        } catch (error) {
+            contactsError.value = error.message || 'Ocurrio un error al cargar los contactos.'
+            showAlert({
+                type: 'error',
+                title: 'No se cargaron los contactos',
+                message: contactsError.value,
+            })
+        }
     }
 
     const addMemberToChat = async () => {
         addMemberError.value = ''
 
         try {
+            const selectedContacts = Array.isArray(contactId.value) ? contactId.value : []
+
+            if (!selectedContacts.length) {
+                throw new Error('Selecciona al menos un contacto.')
+            }
+
+            const contactIds = await Promise.all(selectedContacts.map(async (contact) => {
+                const companyContactId = contact.idempresa_contacto
+
+                if (!companyContactId) {
+                    throw new Error('El contacto seleccionado no tiene un identificador de empresa.')
+                }
+
+                const validatedContact = await validateContactCompany(companyContactId)
+
+                if (validatedContact?.exists === false) {
+                    const createdContact = await createContact({
+                        name: contact.nombre ?? contact.name ?? '',
+                        phone_number: contact.tel_directo ?? contact.phone_number ?? contact.phone ?? '',
+                        display_name: contact.nombre ?? contact.display_name ?? contact.nombre ?? contact.name ?? '',
+                        company: contact.empresa ?? contact.company ?? '',
+                        position: contact.funcion ?? contact.position ?? contact.funcion ?? '',
+                        idempresa_contacto: companyContactId,
+                        fk_idempresa: contact.fk_idempresa ?? null,
+                    })
+                    const createdContactId = createdContact?.id ?? createdContact?.contact_id
+
+                    if (!createdContactId) {
+                        throw new Error('No se obtuvo el identificador del contacto creado.')
+                    }
+
+                    return createdContactId
+                }
+
+                const existingContactId = validatedContact?.data.id
+
+                if (!existingContactId) {
+                    throw new Error('No se pudo validar el contacto seleccionado.')
+                }
+
+                return existingContactId
+            }))
+
             await addMember({
                 chat_id: props.chatId,
-                contact_ids: contactId.value.map(item => item.id),
+                quotation_id: props.quotationId,
+                contact_ids: contactIds,
             })
             showAlert({
                 type: 'success',
@@ -165,7 +244,8 @@
         }
     }
 
-    watch(() => props.chatId, loadContactsAvailableChat, { immediate: true })
+    //watch(() => props.chatId, loadContactsAvailableChat, { immediate: true })
+    watch(() => props.quotationId, loadQuotationContacts, { immediate: true })
 
     watch(dialog, (isOpen) => {
         if (!isOpen) {

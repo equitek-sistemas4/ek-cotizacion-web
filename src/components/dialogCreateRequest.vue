@@ -11,6 +11,7 @@
         <v-row density="comfortable">
           <v-col cols="12">
             <v-text-field
+              autocomplete="off"
               v-model="form.name"
               label="Nombre"
               placeholder="Ingrese el nombre"
@@ -22,6 +23,7 @@
 
           <v-col cols="12">
             <v-text-field
+              autocomplete="off"
               v-model="form.phone_number"
               label="Teléfono"
               placeholder="Ingrese el número de teléfono"
@@ -33,6 +35,7 @@
 
           <v-col cols="12">
             <v-text-field
+              autocomplete="off"
               v-model="form.display_name"
               label="Nombre Mostrado"
               placeholder="Ingrese el nombre mostrado"
@@ -43,6 +46,7 @@
 
           <v-col cols="12">
             <v-text-field
+              autocomplete="off"
               v-model="form.company"
               label="Empresa"
               placeholder="Ingrese la empresa"
@@ -53,6 +57,7 @@
 
           <v-col cols="12">
             <v-text-field
+              autocomplete="off"
               v-model="form.position"
               label="Puesto"
               placeholder="Puesto en la empresa"

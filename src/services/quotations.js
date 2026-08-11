@@ -85,3 +85,13 @@ export const getQuotationScopes = async (quotation_id, { accessToken } = {}) => 
 
   return response.data?.data ?? null
 }
+
+
+export const getQuotationContacts = async (quotation_id, { accessToken } = {}) => {
+  const response = await quotationsApi.get(
+    `/quotations/${quotation_id}/contacts`,
+    getAuthorizationConfig(accessToken),
+  )
+
+  return response.data?.data ?? null
+}

@@ -60,12 +60,25 @@ export const getContactsAvailableChat = async (chatId) => {
 }
 
 
+export const validateContactCompany = async (idempresa_contacto) => {
+  try {
+    const response = await contactsApi.get(`/contacts/exists/company-contact/${idempresa_contacto}`)
+    return response.data ?? null
+  } catch (error) {
+    console.error('Error validating contact company:', error)
+    return null
+  }
+}
+
+
 export const createContact = async ({
   name,
   phone_number,
   display_name,
   company,
   position,
+  idempresa_contacto,
+  fk_idempresa,
 }) => {
   const body = new URLSearchParams()
   body.append('name', name)
@@ -73,6 +86,8 @@ export const createContact = async ({
   body.append('display_name', display_name)
   body.append('company', company)
   body.append('position', position)
+  body.append('idempresa_contacto', idempresa_contacto)
+  body.append('fk_idempresa', fk_idempresa)
   const response = await contactsApi.post(`/contacts/create`, body, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

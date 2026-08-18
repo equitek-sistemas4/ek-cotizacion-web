@@ -97,9 +97,7 @@ export const sendChatMessage = async ({
     '/chat_messages/send',
     body,
     {
-      headers: {
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
+      headers: (accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
   )
 

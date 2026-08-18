@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { getQuotationEquipment } from '@/services/quotations'
+import { getQuotationEquipment, getQuotationInfo, getQuotationScopes } from '@/services/quotations'
 
 const equipmentImages = import.meta.glob('../assets/Equipos/*/Equipo-*', {
   eager: true,
@@ -16,6 +16,17 @@ const props = defineProps({
 const loading = ref(false)
 const errorMessage = ref('')
 const equipment = ref([])
+const quotationInfo = ref(null)
+const prospectInfo = ref(null)
+const scopeEquipment = ref([])
+const presentations = ref([])
+
+const baseScopeHeaders = [
+  { title: 'Alcance', key: 'alcance' },
+  { title: 'Mínimo', key: 'minimo', align: 'end' },
+  { title: 'Máximo', key: 'maximo', align: 'end' },
+  { title: 'Unidad', key: 'medida' },
+]
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined) {
@@ -27,6 +38,52 @@ const formatCurrency = (value) => {
     currency: 'MXN',
   }).format(Number(value))
 }
+
+const quotationHeading = () => {
+  const quotationNumber = quotationInfo.value?.idcoti ?? props.quotationId
+  const company = quotationInfo.value?.empresa ?? prospectInfo.value?.empresa
+
+  return company ? `Cotización #${quotationNumber} - ${company}` : `Cotización #${quotationNumber}`
+}
+
+const formatValue = (value) => {
+  if (value === null || value === undefined || value === '') return '—'
+
+  return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 2 }).format(Number(value))
+}
+
+const formatPresentation = (presentation) =>
+  `${presentation.producto || 'Presentación'}: ${presentation.presentacion || '—'} ${presentation.medida || ''}`.trim()
+
+const scopeHeaders = () => [
+  ...baseScopeHeaders,
+  ...presentations.value.map((presentation) => ({
+    title: formatPresentation(presentation),
+    key: `presentation_${presentation.idpresen}`,
+    align: 'end',
+  })),
+]
+
+const scopeRows = (item) =>
+  (item?.Alcances ?? item?.alcances ?? []).map((scope) => {
+    const values = Object.fromEntries(
+      (scope.valores ?? []).map((value) => [
+        `presentation_${value.idpresen}`,
+        formatValue(value.valor),
+      ]),
+    )
+
+    return {
+      ...scope,
+      minimo: formatValue(scope.minimo),
+      maximo: formatValue(scope.maximo),
+      ...values,
+    }
+  })
+
+const getEquipmentScopes = (item) => scopeEquipment.value.find(
+  (scopeItem) => String(scopeItem.idcequipos) === String(item.idcequipos),
+)
 
 const getEquipmentImage = (serie) => {
   const normalizedSerie = String(serie || '').trim().toUpperCase()
@@ -66,7 +123,51 @@ const loadEquipment = async () => {
   }
 }
 
-watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: true })
+const loadScopes = async () => {
+  if (!props.quotationId) {
+    scopeEquipment.value = []
+    presentations.value = []
+    return
+  }
+
+  try {
+    const response = await getQuotationScopes(props.quotationId, {
+      accessToken: props.accessToken,
+    })
+
+    scopeEquipment.value = Array.isArray(response) ? response : response?.Equipos ?? []
+    presentations.value = response?.Presentaciones ?? []
+  } catch {
+    scopeEquipment.value = []
+    presentations.value = []
+  }
+}
+
+const loadQuotationInfo = async () => {
+  if (!props.quotationId) {
+    quotationInfo.value = null
+    prospectInfo.value = null
+    return
+  }
+
+  try {
+    const response = await getQuotationInfo(props.quotationId, {
+      accessToken: props.accessToken,
+    })
+
+    quotationInfo.value = response?.quotation_info ?? null
+    prospectInfo.value = response?.quotation_prospect_info ?? null
+  } catch {
+    quotationInfo.value = null
+    prospectInfo.value = null
+  }
+}
+
+watch(() => [props.quotationId, props.accessToken], () => {
+  loadEquipment()
+  loadScopes()
+  loadQuotationInfo()
+}, { immediate: true })
 </script>
 
 <template>
@@ -82,7 +183,7 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
 
     <template v-else>
       <div>
-        <p class="equipment-eyebrow">Cotización</p>
+        <p class="equipment-eyebrow">{{ quotationHeading() }}</p>
         <h1>Equipos cotizados</h1>
       </div>
 
@@ -92,7 +193,7 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
             <div>
               <!--<p>{{ item.familia }}</p>-->
               <v-chip color="default" variant="flat">{{ item.familia }}</v-chip>
-              <h2>{{ item.modelo }}</h2>
+              <h2>Modelo: {{ item.modelo }}</h2>
             </div>
             <!--<strong>{{ formatCurrency(item.costoactual ?? item.costo) }}</strong>-->
             <!--<v-chip color="green" variant="flat">{{ formatCurrency(item.costoactual ?? item.costo) }}</v-chip>-->
@@ -128,13 +229,31 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
                   class="equipment-image"
                   contain
                 />
-                <!--<iframe
-                  class="equipment-video"
-                  src="https://www.youtube.com/embed/pGkxFYy_OXE"
-                  title="Video de equipo DVL Agroquímicos"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowfullscreen
-                />-->
+              </v-col>
+
+              <v-col v-if="getEquipmentScopes(item)" cols="12" class="equipment-scopes-column">
+                <v-expansion-panels variant="accordion">
+                  <v-expansion-panel title="Alcances del equipo">
+                    <v-expansion-panel-text>
+                      <v-alert v-if="!scopeRows(getEquipmentScopes(item)).length" type="info" variant="tonal">
+                        Este equipo no tiene alcances registrados.
+                      </v-alert>
+                      <div v-else class="equipment-scopes-table">
+                        <v-data-table
+                          class="equipment-scopes-data-table"
+                          :headers="scopeHeaders()"
+                          :items="scopeRows(getEquipmentScopes(item))"
+                          :items-per-page="-1"
+                          density="comfortable"
+                          hide-default-footer
+                        >
+                          <template #item.minimo="{ value }">{{ formatValue(value) }}</template>
+                          <template #item.maximo="{ value }">{{ formatValue(value) }}</template>
+                        </v-data-table>
+                      </div>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
               </v-col>
 
               <v-col cols="12" class="equipment-image-column">
@@ -235,6 +354,41 @@ h1 {
   color: rgb(var(--v-theme-surface));
   font-weight: 700;
   text-decoration: none;
+}
+.equipment-scopes-table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  contain: inline-size;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.equipment-scopes-column,
+.equipment-scopes-column :deep(.v-expansion-panels),
+.equipment-scopes-column :deep(.v-expansion-panel),
+.equipment-scopes-column :deep(.v-expansion-panel-text),
+.equipment-scopes-column :deep(.v-expansion-panel-text__wrapper),
+.equipment-scopes-table :deep(.v-data-table) {
+  min-width: 0;
+  max-width: none;
+}
+.equipment-scopes-table :deep(.equipment-scopes-data-table) {
+  width: max-content;
+  min-width: 100%;
+  white-space: nowrap;
+}
+.equipment-scopes-table :deep(.v-table__wrapper) {
+  overflow: visible;
+}
+.equipment-scopes-table :deep(table) {
+  width: max-content !important;
+  min-width: 100%;
+  table-layout: auto;
+}
+.equipment-scopes-table :deep(th),
+.equipment-scopes-table :deep(td) {
+  white-space: nowrap;
 }
 @media (max-width: 500px) {
   .equipment-title {

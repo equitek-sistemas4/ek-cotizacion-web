@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { getQuotationEquipment } from '@/services/quotations'
+import { getQuotationConditions, getQuotationEquipment, getQuotationInfo } from '@/services/quotations'
 
 const props = defineProps({
   quotationId: { type: [Number, String], default: null },
@@ -10,8 +10,17 @@ const props = defineProps({
 const loading = ref(false)
 const errorMessage = ref('')
 const equipment = ref([])
+const conditions = ref([])
+const quotationInfo = ref(null)
+const prospectInfo = ref(null)
 const discountRate = 0.2
 const taxRate = 0.16
+const equipmentHeaders = [
+  { title: 'Familia', key: 'familia' },
+  { title: 'Modelo', key: 'modelo' },
+  { title: 'Descripción', key: 'descripcion' },
+  { title: 'Costo', key: 'costo', align: 'end' },
+]
 
 const toNumber = (value) => {
   const parsedValue = Number(value)
@@ -88,7 +97,55 @@ const loadEquipment = async () => {
   }
 }
 
-watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: true })
+const quotationHeading = () => {
+  const quotationNumber = quotationInfo.value?.idcoti ?? props.quotationId
+  const company = quotationInfo.value?.empresa ?? prospectInfo.value?.empresa
+
+  return company ? `Cotización #${quotationNumber} - ${company}` : `Cotización #${quotationNumber}`
+}
+
+const loadConditions = async () => {
+  if (!props.quotationId) {
+    conditions.value = []
+    return
+  }
+
+  try {
+    const response = await getQuotationConditions(props.quotationId, {
+      accessToken: props.accessToken,
+    })
+
+    conditions.value = Array.isArray(response) ? response : []
+  } catch {
+    conditions.value = []
+  }
+}
+
+const loadQuotationInfo = async () => {
+  if (!props.quotationId) {
+    quotationInfo.value = null
+    prospectInfo.value = null
+    return
+  }
+
+  try {
+    const response = await getQuotationInfo(props.quotationId, {
+      accessToken: props.accessToken,
+    })
+
+    quotationInfo.value = response?.quotation_info ?? null
+    prospectInfo.value = response?.quotation_prospect_info ?? null
+  } catch {
+    quotationInfo.value = null
+    prospectInfo.value = null
+  }
+}
+
+watch(() => [props.quotationId, props.accessToken], () => {
+  loadEquipment()
+  loadConditions()
+  loadQuotationInfo()
+}, { immediate: true })
 </script>
 
 <template>
@@ -104,33 +161,34 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
 
     <template v-else>
       <div>
-        <p class="equipment-eyebrow">Cotización</p>
+        <p class="equipment-eyebrow">{{ quotationHeading() }}</p>
         <h1>Equipos cotizados</h1>
       </div>
 
       <div class="equipment-list">
-        <v-card v-for="item in equipment" :key="item.idcequipos" variant="elevated">
-          <v-card-title class="equipment-title">
-            <div>
-              <!--<p>{{ item.familia }}</p>-->
-              <v-chip color="default" variant="flat">{{ item.familia }}</v-chip>
-              <h2>{{ item.modelo }}</h2>
-            </div>
-            <!--<strong>{{ formatCurrency(item.costoactual ?? item.costo) }}</strong>-->
-          </v-card-title>
-
-          <v-card-text class="equipment-content">
-            <v-row>
-              <v-col cols="10">
-                <p>{{ truncateText(item.descripcion) }}</p>
-              </v-col>
-              <v-col cols="2">
-                <v-chip color="green" variant="flat">{{ formatCurrency(item.costoactual ?? item.costo) }}</v-chip>
-              </v-col>
-            </v-row>
-
-          </v-card-text>
-        </v-card>
+        <v-data-table
+          :headers="equipmentHeaders"
+          :items="equipment"
+          :items-per-page="-1"
+          class="equipment-table"
+          density="comfortable"
+          hide-default-footer
+        >
+          <template #item.familia="{ value }">
+            {{ value || '—' }}
+          </template>
+          <template #item.modelo="{ value }">{{ value || '—' }}</template>
+          <template #item.descripcion="{ value }">
+            <span :title="value">{{ truncateText(value) || '—' }}</span>
+          </template>
+          <template #item.costo="{ item }">
+            <span class="equipment-cost">
+              <strong>
+                {{ formatCurrency(item.costoactual ?? item.costo) }}
+              </strong>
+            </span>
+          </template>
+        </v-data-table>
       </div>
 
       <v-card class="quotation-totals" variant="elevated">
@@ -159,16 +217,66 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
           </tbody>
         </v-table>
       </v-card>
+
+      <section class="conditions-section">
+        <h2>Condiciones comerciales</h2>
+        <v-row>
+          <v-col cols="12" md="8">
+            <div class="conditions-list">
+              <v-card v-for="condition in conditions" :key="condition.idconds" variant="elevated">
+                <v-card-title><strong>{{ condition.tipo }}</strong></v-card-title>
+                <v-card-text>
+                  <p class="condition-description">{{ condition.descripcion }}</p>
+                  <p v-if="condition.nota" class="condition-note">Nota: {{ condition.nota }}</p>
+                </v-card-text>
+              </v-card>
+            </div>
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-card>
+              <v-card-title><strong>REFERENCIAS BANCARIAS</strong></v-card-title>
+              <v-card-text>
+                <span>
+                  RFC: EQU-000919-7M3 <br /><br />
+                  REFERENCIAS BANCARIAS <br />
+                  Beneficiario: EQUITEK, S.A. DE C.V. <br /><br />
+                  BANCO: BANAMEX Moneda: PESOS Sucursal: 4270 Cuenta: 14554 <br />
+                  Clabe: 0025 8042 7000 1455 45 <br /><br />
+                  BANCO: BANAMEX Moneda: DOLARES Sucursal: 4270 Cuenta: 9000521 <br />
+                  Clabe: 0025 8042 7090 0052 13 <br /><br />
+                  BANCO: BANCOMER Moneda: PESOS Sucursal: 003 Cuenta: 0453297500 <br />
+                  Clabe: 0125 8000 4532 9750 07 <br /><br />
+                  BANCO: BANCOMER Moneda: DOLARES Sucursal: 003 Cuenta: 0114655613 <br />
+                  Clabe: 0125 8000 1146 5561 32
+                </span>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </section>
     </template>
   </section>
 </template>
 
 <style scoped>
 .equipment-quotation,
-.equipment-list,
-.equipment-content {
+.equipment-list {
   display: grid;
   gap: 24px;
+}
+.equipment-table {
+  border: 1px solid rgb(var(--v-theme-border));
+  border-radius: 8px;
+  overflow: hidden;
+}
+.equipment-table :deep(th:nth-child(4)),
+.equipment-table :deep(td:nth-child(4)) {
+  border-left: 1px solid rgb(var(--v-theme-border));
+}
+.equipment-cost {
+  display: block;
+  text-align: right;
+  white-space: nowrap;
 }
 .equipment-state {
   display: grid;
@@ -191,29 +299,36 @@ watch(() => [props.quotationId, props.accessToken], loadEquipment, { immediate: 
   font-size: 1.05rem;
   font-weight: 700;
 }
-.equipment-image {
-  width: 100%;
-  margin-bottom: 16px;
-  border-radius: 8px;
-  aspect-ratio: 16 / 9;
+.conditions-section {
+  display: grid;
+  gap: 16px;
 }
-.equipment-video {
-  width: 100%;
-  margin-bottom: 16px;
-  border: 0;
-  border-radius: 8px;
-  aspect-ratio: 16 / 9;
+.conditions-section h2 {
+  margin: 0;
+  color: rgb(var(--v-theme-textPrimary));
+  font-size: 1.4rem;
 }
-.equipment-image-column {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.conditions-list {
+  display: grid;
+  gap: 16px;
 }
-.equipment-image-column a {
-  align-self: flex-end;
+.conditions-list :deep(.v-card-title) {
+  color: rgb(var(--v-theme-primary));
+  font-size: 1rem;
+  white-space: normal;
 }
-.equipment-eyebrow,
-.equipment-title p {
+.condition-description,
+.condition-note {
+  margin: 0;
+  color: rgb(var(--v-theme-textPrimary));
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.condition-note {
+  margin-top: 16px;
+  color: rgb(var(--v-theme-textMuted));
+}
+.equipment-eyebrow {
   margin: 0;
   color: rgb(var(--v-theme-primary));
   font-size: 0.84rem;
@@ -226,44 +341,5 @@ h1 {
   color: rgb(var(--v-theme-textPrimary));
   font-size: clamp(1.6rem, 4vw, 2.3rem);
   line-height: 1.2;
-}
-.equipment-title {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-  white-space: normal;
-}
-.equipment-title h2 {
-  margin: 6px 0 0;
-  font-size: 1.2rem;
-}
-.equipment-title strong {
-  color: rgb(var(--v-theme-primary));
-  white-space: nowrap;
-}
-.equipment-content > p,
-.equipment-content :deep(.v-expansion-panel-text__wrapper) {
-  margin: 0;
-  color: rgb(var(--v-theme-textPrimary));
-  line-height: 1.6;
-  white-space: pre-line;
-}
-.equipment-content a {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  width: fit-content;
-  padding: 8px 14px;
-  border-radius: 10px;
-  background: rgb(var(--v-theme-primary));
-  color: rgb(var(--v-theme-surface));
-  font-weight: 700;
-  text-decoration: none;
-}
-@media (max-width: 500px) {
-  .equipment-title {
-    flex-direction: column;
-  }
 }
 </style>

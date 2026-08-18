@@ -41,26 +41,26 @@ const mobileTabsMenu = ref(false)
           <v-icon class="tab-icon" icon="mdi-home"></v-icon>
           Inicio
         </v-tab>
+        <v-tab value="productos">
+          <v-icon class="tab-icon" icon="mdi-file-check"></v-icon>
+          Requerimiento de Produccion
+        </v-tab>
         <v-tab value="equipos">
           <v-icon class="tab-icon" icon="mdi-laptop"></v-icon>
           Equipos
         </v-tab>
-        <v-tab value="productos">
-          <v-icon class="tab-icon" icon="mdi-file-check"></v-icon>
-          Productos
-        </v-tab>
         <v-tab value="precios">
           <v-icon class="tab-icon" icon="mdi-tag"></v-icon>
-          Precios
+          Precios Condiciones y Garantias
         </v-tab>
-        <v-tab value="alcances">
+        <!--<v-tab value="alcances">
           <v-icon class="tab-icon" icon="mdi-target"></v-icon>
           Alcances
         </v-tab>
         <v-tab value="condiciones">
           <v-icon class="tab-icon" icon="mdi-file-document-check"></v-icon>
           Condiciones
-        </v-tab>
+        </v-tab>-->
         <v-tab value="financiero">
           <v-icon class="tab-icon" icon="mdi-cash"></v-icon>
           Analisis Financiero

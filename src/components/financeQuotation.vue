@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { getQuotationInfo } from '@/services/quotations'
-import arrendamientoImg from '@/assets/arrendamiento.PNG'
 
 const props = defineProps({
   quotationId: { type: [Number, String], default: null },
@@ -11,18 +10,41 @@ const props = defineProps({
 const loading = ref(false)
 const errorMessage = ref('')
 const projectCost = ref(0)
+const quotationInfo = ref(null)
+const prospectInfo = ref(null)
 const term = ref(12)
 const downPaymentPercent = ref(15)
 const monthlyPayment = ref(0)
+const expectedMonthlyProduction = ref(0)
+const expectedMonthlyProfit = ref(0)
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(value) || 0)
+
+const quotationHeading = () => {
+  const quotationNumber = quotationInfo.value?.idcoti ?? props.quotationId
+  const company = quotationInfo.value?.empresa ?? prospectInfo.value?.empresa
+
+  return company ? `Cotización #${quotationNumber} - ${company}` : `Cotización #${quotationNumber}`
+}
 
 const discountedCost = computed(() => projectCost.value * 0.12)
 const traditionalPayment = computed(() => discountedCost.value / 2)
 const downPayment = computed(() => projectCost.value * (Number(downPaymentPercent.value) / 100))
 const residualValue = computed(() => projectCost.value * 0.01)
 const financedAmount = computed(() => projectCost.value - downPayment.value - residualValue.value)
+const annualExpectedProfit = computed(() => Number(expectedMonthlyProfit.value || 0) * 12)
+const roiPercentage = computed(() => (
+  projectCost.value > 0 ? (annualExpectedProfit.value / projectCost.value) * 100 : 0
+))
+const recoveryMonths = computed(() => (
+  Number(expectedMonthlyProfit.value) > 0 ? projectCost.value / Number(expectedMonthlyProfit.value) : null
+))
+const profitPerUnit = computed(() => (
+  Number(expectedMonthlyProduction.value) > 0
+    ? Number(expectedMonthlyProfit.value || 0) / Number(expectedMonthlyProduction.value)
+    : 0
+))
 /*const paymentBalance = computed(
   () => financedAmount.value - Number(monthlyPayment.value || 0) * Number(term.value || 0),
 )*/
@@ -35,6 +57,8 @@ const recalculateMonthlyPayment = () => {
 const loadCost = async () => {
   if (!props.quotationId) {
     projectCost.value = 0
+    quotationInfo.value = null
+    prospectInfo.value = null
     errorMessage.value = 'No fue posible identificar la cotización.'
     return
   }
@@ -44,6 +68,8 @@ const loadCost = async () => {
 
   try {
     const response = await getQuotationInfo(props.quotationId, { accessToken: props.accessToken })
+    quotationInfo.value = response?.quotation_info ?? null
+    prospectInfo.value = response?.quotation_prospect_info ?? null
     projectCost.value = Number(response?.quotation_info?.costo ?? 0)
 
     if (!projectCost.value) {
@@ -51,6 +77,8 @@ const loadCost = async () => {
     }
   } catch (error) {
     projectCost.value = 0
+    quotationInfo.value = null
+    prospectInfo.value = null
     errorMessage.value = error.message || 'No se pudo obtener el valor del proyecto.'
   } finally {
     loading.value = false
@@ -72,45 +100,17 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
 
     <template v-else>
       <div>
-        <p class="finance-eyebrow">Cotización</p>
+        <p class="finance-eyebrow">{{ quotationHeading() }}</p>
         <h1>Análisis Financiero</h1>
       </div>
 
-      <v-card class="finance-plans-card" variant="flat">
-        <v-card-text class="finance-plans-content">
-          <div class="finance-plans-title">
-            CONOCE NUESTROS PLANES DE FINANCIAMIENTO Y ¡OBTÉN GRANDES BENEFICIOS!
-          </div>
-
-          <div class="finance-benefits">
-            <div class="finance-benefits-column">
-              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> Aumentar tu capacidad de producción.</p>
-              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> Modernizar tu línea de envasado.</p>
-            </div>
-            <div class="finance-benefits-column">
-              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> Arrancar ese nuevo proyecto.</p>
-              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> Con un <strong>R.O.I.</strong> muy atractivo</p>
-            </div>
-            <div class="finance-benefits-column">
-              <p><v-icon color="primary" icon="mdi-play-circle" size="small" /> ¡Sin descapitalizarse!</p>
-            </div>
-          </div>
-
-          <v-img
-            :src="arrendamientoImg"
-            alt="Arrendamiento"
-            class="equipment-image"
-            contain
-          />
-
-          <p class="finance-plans-note">
+      <div>
+        <span class="finance-plans-note">
             En Equitek contamos con <strong>planes de financiamiento</strong> mediante arrendamiento puro o leasing,
             <strong>te ayudamos</strong> a diseñar un <strong>plan</strong> de acuerdo a tus necesidades, con un
             <strong>enganche mínimo</strong> y distintas <strong>opciones de plazo.</strong>
-            <span>*Nota: La imagen de la serie es ilustrativa. No de la presente cotización.</span>
-          </p>
-        </v-card-text>
-      </v-card>
+        </span>
+      </div>
 
       <v-card variant="elevated">
         <v-card-text class="promotion">
@@ -220,6 +220,57 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
           <br/>
         </v-card-text>
       </v-card>
+
+      <v-card variant="elevated">
+        <v-card-text class="finance-content">
+          <div class="finance-heading">
+            <h2>RETORNO DE INVERSIÓN (ROI)</h2>
+            <p>Captura las estimaciones mensuales para conocer la recuperación de tu inversión.</p>
+          </div>
+
+          <div class="finance-controls finance-controls--roi">
+            <v-text-field
+              v-model.number="expectedMonthlyProduction"
+              label="Producción mensual esperada"
+              min="0"
+              suffix="unidades"
+              type="number"
+              variant="outlined"
+            />
+            <v-text-field
+              v-model.number="expectedMonthlyProfit"
+              label="Utilidad mensual esperada"
+              min="0"
+              prefix="$"
+              type="number"
+              variant="outlined"
+            />
+          </div>
+
+          <div class="roi-summary">
+            <div>
+              <span>Inversión total</span>
+              <strong>{{ formatCurrency(projectCost) }}</strong>
+            </div>
+            <div>
+              <span>Utilidad anual estimada</span>
+              <strong>{{ formatCurrency(annualExpectedProfit) }}</strong>
+            </div>
+            <div>
+              <span>ROI anual estimado</span>
+              <strong>{{ roiPercentage.toFixed(2) }}%</strong>
+            </div>
+            <div>
+              <span>Recuperación estimada</span>
+              <strong>{{ recoveryMonths == null ? 'Captura la utilidad mensual' : `${recoveryMonths.toFixed(1)} meses` }}</strong>
+            </div>
+            <div>
+              <span>Utilidad estimada por unidad</span>
+              <strong>{{ expectedMonthlyProduction > 0 ? formatCurrency(profitPerUnit) : 'Captura la producción mensual' }}</strong>
+            </div>
+          </div>
+        </v-card-text>
+      </v-card>
     </template>
   </section>
 </template>
@@ -243,6 +294,11 @@ h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1
 .promotion h2, .promotion h3, .finance-heading h2 { margin: 0; color: rgb(var(--v-theme-primary)); font-size: 1.15rem; }
 .promotion > p, .finance-heading p { margin: 8px 0 20px; color: rgb(var(--v-theme-textMuted)); }
 .finance-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.finance-controls--roi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.roi-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.roi-summary > div { display: grid; gap: 4px; padding: 14px; border-radius: 8px; background: rgb(var(--v-theme-surfaceVariant)); }
+.roi-summary span { color: rgb(var(--v-theme-textMuted)); font-size: .85rem; }
+.roi-summary strong { color: rgb(var(--v-theme-textPrimary)); font-size: 1.05rem; }
 .finance-note, .finance-disclaimer { margin: 10px 0 0; text-align: center; color: rgb(var(--v-theme-textMuted)); font-size: .9rem; }
 .finance-disclaimer { line-height: 1.5; }
 .finance-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -251,6 +307,7 @@ h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1
 @media (max-width: 700px) {
   .finance-content { gap: 20px; }
   .finance-controls { grid-template-columns: 1fr; gap: 4px; }
+  .finance-controls--roi { grid-template-columns: 1fr; }
   .finance-benefits { grid-template-columns: 1fr; gap: 8px; }
   .equipment-image { margin: 20px auto 14px; }
   .finance-plans-note { font-size: .84rem; }

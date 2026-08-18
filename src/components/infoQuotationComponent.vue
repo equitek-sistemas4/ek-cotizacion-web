@@ -13,7 +13,7 @@ const quotationInfo = ref(null)
 const prospectInfo = ref(null)
 const equipmentSummary = ref(null)
 
-const formatCurrency = (value) => {
+/*const formatCurrency = (value) => {
   if (value === null || value === undefined || value === '') {
     return 'Sin información'
   }
@@ -22,7 +22,7 @@ const formatCurrency = (value) => {
     style: 'currency',
     currency: 'MXN',
   }).format(Number(value))
-}
+}*/
 
 const buildEquipmentSummary = (equipments) => {
   if (!Array.isArray(equipments) || equipments.length === 0) {
@@ -97,6 +97,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
         <div class="quotation-heading-content">
           <p class="portal-eyebrow">Cotización #{{ quotationInfo.idcoti }}</p>
           <h1>{{ quotationInfo.empresa || prospectInfo?.empresa || 'Cotización' }}</h1>
+          <h4 style="color: white;"> Contacto: {{ prospectInfo.nombre }} </h4>
         </div>
         <div class="quotation-status">
           <v-chip color="primary" variant="flat">
@@ -109,15 +110,11 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
       </div>
 
       <div>
-        <v-card>
-          <v-card-text>
-            <span>En relación a su solicitud de precios, nos es grato presentarle para su consideración la siguiente
-propuesta de equipos que, de acuerdo y con base en sus comentarios, creemos cumple ampliamente
-con sus expectativas.
-Sin más por el momento, esperamos que esta propuesta sea de su agrado, y quedamos de ustedes en
-espera de sus amables comentarios y atentos para resolver cualquier duda o aclaración al respecto.</span>
-          </v-card-text>
-        </v-card>
+        <span>En relación a su solicitud de precios, nos es grato presentarle para su consideración la siguiente
+          propuesta de equipos que, de acuerdo y con base en sus comentarios, creemos cumple ampliamente
+          con sus expectativas.
+          Sin más por el momento, esperamos que esta propuesta sea de su agrado, y quedamos de ustedes en
+          espera de sus amables comentarios y atentos para resolver cualquier duda o aclaración al respecto.</span>
       </div>
 
       <div class="info-grid">

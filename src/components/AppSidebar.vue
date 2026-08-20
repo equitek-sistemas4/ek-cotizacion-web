@@ -1,12 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useTheme } from 'vuetify'
 import { getUnreadNotifications, readNotifications } from '@/services/notifications'
 import { useAuthStore } from '@/stores/auth'
 import logoImg from '@/assets/logo.png'
 
 const router = useRouter()
 const route = useRoute()
+const theme = useTheme()
 const authStore = useAuthStore()
 const collapsed = ref(false)
 const logoUrl = logoImg
@@ -14,6 +16,17 @@ const unreadNotifications = ref([])
 let unreadNotificationsInterval = null
 
 const loggedUserName = computed(() => authStore.user?.name || authStore.user?.email || 'Usuario')
+const isDarkTheme = computed(() => theme.global.name.value === 'dark')
+const themeToggleLabel = computed(() =>
+  isDarkTheme.value ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
+)
+
+const toggleTheme = () => {
+  const nextTheme = isDarkTheme.value ? 'light' : 'dark'
+
+  theme.global.name.value = nextTheme
+  localStorage.setItem('theme', nextTheme)
+}
 
 const navigationItems = computed(() =>
   router
@@ -104,6 +117,12 @@ const logout = () => {
 }
 
 onMounted(() => {
+  const storedTheme = localStorage.getItem('theme')
+
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    theme.global.name.value = storedTheme
+  }
+
   loadUnreadNotifications()
   unreadNotificationsInterval = setInterval(loadUnreadNotifications, 60_000)
 })
@@ -165,6 +184,18 @@ onBeforeUnmount(() => {
       <v-spacer />
 
       <v-list class="logout-list" density="compact" nav>
+        <v-tooltip :text="themeToggleLabel" location="end">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              color="primary"
+              :prepend-icon="isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+              rounded="lg"
+              :title="collapsed ? undefined : themeToggleLabel"
+              @click="toggleTheme"
+            />
+          </template>
+        </v-tooltip>
         <v-list-item
           v-if="!collapsed"
           :title="loggedUserName"

@@ -468,6 +468,7 @@ onBeforeUnmount(() => {
               :chat-id="chatId"
               hide-member-link-actions
               :show-activator="false"
+              :show-delete-chat="false"
             />
           </div>
 

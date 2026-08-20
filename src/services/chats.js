@@ -15,10 +15,24 @@ const getAuthorizationConfig = (accessToken) => {
 }
 
 
-export const getChats = async () => {
-  const response = await chatsApi.get('/chats/list')
+export const getChats = async ({ search = '' } = {}) => {
+  const normalizedSearch = typeof search === 'string' ? search.trim() : ''
+  const response = await chatsApi.get('/chats/list', {
+    params: normalizedSearch ? { search: normalizedSearch } : undefined,
+  })
 
   return Array.isArray(response.data?.data) ? response.data.data : []
+}
+
+
+export const searchChatsMessages = async (chatId, { search = '', accessToken } = {}) => {
+  const normalizedSearch = typeof search === 'string' ? search.trim() : ''
+  const response = await chatsApi.get(`/chat_messages/${chatId}/search`, {
+    ...getAuthorizationConfig(accessToken),
+    params: normalizedSearch ? { search: normalizedSearch } : undefined,
+  })
+
+  return response.data?.data ?? []
 }
 
 
@@ -36,6 +50,12 @@ export const getChatMessages = async (chatId, { accessToken } = {}) => {
   )
 
   return response.data?.data ?? null
+}
+
+export const deleteChat = async (chatId) => {
+  const response = await chatsApi.delete(`/chats/${chatId}`)
+
+  return response.data?.data ?? response.data
 }
 
 

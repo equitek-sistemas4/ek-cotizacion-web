@@ -17,8 +17,11 @@ export const themeColors = {
 }
 
 export const themeColorsDark = {
-  primary: '#1e2436',
+  primary: '#7e88a8',
   secondary: '#fd363c',
+  background: '#121826',
+  surface: '#1e293b',
+  appBackground: '#121826',
   textPrimary: '#f8fafc',
   textMuted: '#cbd5e1',
   border: '#475569',
@@ -41,6 +44,7 @@ export default createVuetify({
         colors: themeColors,
       },
       dark: {
+        dark: true,
         colors: themeColorsDark,
       },
     },

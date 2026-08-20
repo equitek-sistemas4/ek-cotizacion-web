@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { getChatById, deleteMemberToChat } from '@/services/chats'
+import { deleteChat, getChatById, deleteMemberToChat } from '@/services/chats'
 import { sendTemplateMeta } from '@/services/whatsapp'
 
 const props = defineProps({
@@ -16,8 +16,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showDeleteChat: {
+    type: Boolean,
+    default: true,
+  },
 })
 
+const emit = defineEmits(['chat-deleted'])
 const dialog = defineModel({ default: false })
 const chat = ref(null)
 const loading = ref(false)
@@ -26,6 +31,8 @@ const copiedMemberId = ref(null)
 const sendingWhatsappMemberId = ref(null)
 const memberToRemove = ref(null)
 const removeMemberDialog = ref(false)
+const removeChatDialog = ref(false)
+const deletingChat = ref(false)
 
 const members = computed(() => (Array.isArray(chat.value?.members) ? chat.value.members : []))
 const baseUrl = import.meta.env.VITE_BASE_URL_WEB?.replace(/\/$/, '') ?? ''
@@ -160,6 +167,27 @@ const confirmMemberRemoval = async () => {
   }
 }
 
+const confirmChatRemoval = async () => {
+  if (!props.chatId) {
+    return
+  }
+
+  deletingChat.value = true
+  errorMessage.value = ''
+
+  try {
+    await deleteChat(props.chatId)
+    removeChatDialog.value = false
+    dialog.value = false
+    emit('chat-deleted', props.chatId)
+  } catch (error) {
+    console.error('Error al eliminar el chat:', error)
+    errorMessage.value = error.response?.data?.message || 'No se pudo eliminar el chat.'
+  } finally {
+    deletingChat.value = false
+  }
+}
+
 const getMemberUrl = (member) => {
   const access_code = member?.access_code
   if (!access_code) {
@@ -240,15 +268,30 @@ watch(() => props.chatId, loadChat, { immediate: true })
 
                 <div v-else class="info-chat-content">
                     <header class="info-chat-header">
-                    <v-avatar color="primary" size="44">
-                        <span>{{ chat.name?.charAt(0) || 'C' }}</span>
-                    </v-avatar>
+                      <v-avatar color="primary" size="44">
+                          <span>{{ chat.name?.charAt(0) || 'C' }}</span>
+                      </v-avatar>
 
-                    <div>
-                        <p>Chat #{{ chat.id }}</p>
-                        <h2>{{ chat.name }} #{{ chat.quotation_id }} <small> - {{ chat.description }}</small></h2>
-                        <small>Creado: {{ formatDate(chat.created_at) }}</small>
-                    </div>
+                      <div class="info-chat-header-details">
+                          <p>Chat #{{ chat.id }}</p>
+                          <h2>{{ chat.name }} #{{ chat.quotation_id }} <small> - {{ chat.description }}</small></h2>
+                          <small>Creado: {{ formatDate(chat.created_at) }}</small>
+                      </div>
+
+                      <v-spacer />
+
+                      <v-tooltip v-if="showDeleteChat" text="Eliminar chat">
+                        <template #activator="{ props: tooltipProps }">
+                          <v-btn
+                            aria-label="Eliminar chat"
+                            color="error"
+                            icon="mdi-delete"
+                            variant="text"
+                            v-bind="tooltipProps"
+                            @click="removeChatDialog = true"
+                          />
+                        </template>
+                      </v-tooltip>
                     </header>
 
                     <v-divider />
@@ -346,6 +389,21 @@ watch(() => props.chatId, loadChat, { immediate: true })
                 </v-card-actions>
             </v-card>
         </v-dialog>
+
+        <v-dialog v-model="removeChatDialog" max-width="420">
+            <v-card>
+                <v-card-title>Eliminar chat</v-card-title>
+                <v-card-text>
+                    ¿Estás seguro de eliminar el chat <strong>{{ chat?.name || `#${chatId}` }}</strong>?
+                    Esta acción no se puede deshacer.
+                </v-card-text>
+                <v-card-actions>
+                    <v-spacer />
+                    <v-btn :disabled="deletingChat" variant="text" @click="removeChatDialog = false">Cancelar</v-btn>
+                    <v-btn color="error" :loading="deletingChat" variant="tonal" @click="confirmChatRemoval">Eliminar</v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
 
@@ -379,6 +437,10 @@ watch(() => props.chatId, loadChat, { immediate: true })
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.info-chat-header-details {
+  min-width: 0;
 }
 
 .info-chat-header span,

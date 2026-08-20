@@ -1,7 +1,9 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getChatById, getChatMessages, getChats, sendChatMessage } from '@/services/chats'
+import { getChatById, getChatMessages, getChats, searchChatsMessages, sendChatMessage } from '@/services/chats'
+import { getChatsWpp } from '@/services/chats_whatsapp'
+import { getChatMessagesWpp, sendWhatsappMessage } from '@/services/whatsapp'
 import { useAuthStore } from '@/stores/auth'
 import dialogAddMember from '@/components/dialogAddMember.vue'
 import generateLinkQuotation from '@/components/generateLinkQuotation.vue'
@@ -10,6 +12,12 @@ import infoChatMembers from '@/components/infoChatMembers.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const message = ref('')
+const chatSearch = ref('')
+const messageSearch = ref('')
+const messageSearchVisible = ref(false)
+const messageSearchLoading = ref(false)
+const matchingMessageIds = ref(new Set())
+const selectedMatchIndex = ref(-1)
 const selectedFile = ref(null)
 const fileInput = ref(null)
 const userId = ref(null)
@@ -29,8 +37,85 @@ const infoChatMembersKey = ref(0)
 
 const chats = ref([])
 let selectedChatRequestId = 0
+let chatsRequestId = 0
+let messageSearchRequestId = 0
 
 const selectedChat = computed(() => chats.value.find((chat) => chat.id === selectedChatId.value))
+const loggedUserName = computed(() => authStore.user?.name || authStore.user?.email || 'Usuario')
+const matchingMessages = computed(() =>
+  (selectedChat.value?.messages ?? []).filter((messageItem) => isMatchingMessage(messageItem.id)),
+)
+const activeMatchingMessageId = computed(() => matchingMessages.value[selectedMatchIndex.value]?.id ?? null)
+
+const getSearchResultMessageIds = (searchResults) => {
+  const messages = Array.isArray(searchResults)
+    ? searchResults
+    : searchResults?.messages ?? []
+
+  return new Set(
+    messages
+      .map((messageItem) => messageItem?.id ?? messageItem?.message?.id)
+      .filter(Boolean)
+      .map(String),
+  )
+}
+
+const isMatchingMessage = (messageId) => matchingMessageIds.value.has(String(messageId))
+
+const getMessageSenderName = (messageItem) => {
+  if (selectedChat.value?.channel !== 'whatsapp') {
+    return messageItem.senderName
+  }
+
+  return messageItem.fromMe
+    ? loggedUserName.value
+    : selectedChat.value.name || messageItem.senderName || 'Contacto'
+}
+
+const messageElementRefs = new Map()
+
+const setMessageElement = (messageId, element) => {
+  if (element) {
+    messageElementRefs.set(String(messageId), element)
+    return
+  }
+
+  messageElementRefs.delete(String(messageId))
+}
+
+const scrollToSelectedMatch = async () => {
+  const messageId = activeMatchingMessageId.value
+
+  if (!messageId) {
+    return
+  }
+
+  await nextTick()
+  messageElementRefs.get(String(messageId))?.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center',
+  })
+}
+
+const getHighlightedMessageParts = (text) => {
+  const messageText = text ?? ''
+  const query = messageSearch.value.trim()
+
+  if (!query) {
+    return [{ text: messageText, isMatch: false }]
+  }
+
+  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const expression = new RegExp(`(${escapedQuery})`, 'gi')
+
+  return messageText
+    .split(expression)
+    .filter((part) => part !== '')
+    .map((part) => ({
+      text: part,
+      isMatch: part.toLocaleLowerCase() === query.toLocaleLowerCase(),
+    }))
+}
 
 const decodeTokenPayload = (token) => {
   try {
@@ -121,16 +206,36 @@ const truncateText = (text, maxLength = 17) => {
 
 const normalizeChat = (chat) => ({
   id: chat.id,
-  name: chat.name,
+  name: chat.name ?? 'Sin nombre',
+  channel: chat.channel ?? 'chat',
   status: chat.status,
   quotation_id: chat.quotation_id ?? chat.quotationId ?? chat.quotation?.id ?? null,
   createdAt: chat.created_at,
   description: chat.description ?? chat.chat_description ?? '',
+  phone_number: chat.phone_number ?? chat.contact?.phone_number ?? null,
   time: formatChatTime(chat.created_at),
   unread: 0,
   messages: [],
   members: [],
 })
+
+const normalizeWhatsappChat = (chat) =>
+  normalizeChat({
+    ...chat,
+    channel: 'whatsapp',
+    name:
+      chat.name ??
+      chat.contact?.name ??
+      chat.contact?.display_name ??
+      chat.contact_name ??
+      'Conversación de WhatsApp',
+    description:
+      chat.description ??
+      chat.contact?.company ??
+      chat.contact?.phone_number ??
+      chat.phone_number ??
+      'WhatsApp',
+  })
 
 const getChatId = (chat) => chat?.id ?? chat?.chat_id ?? chat?.chat?.id ?? chat?.chat?.chat_id
 
@@ -176,15 +281,22 @@ const normalizeFiles = (files) => {
 }
 
 const normalizeMessage = (messageItem) => {
-  const messageData = messageItem.message ?? {}
+  const messageData = messageItem.message ?? messageItem ?? {}
   const sender = messageItem.sender ?? {}
+  const text = messageData.text?.body ?? messageData.text ?? messageData.body ?? messageData.message ?? ''
+  const direction = String(messageData.direction ?? '').toLocaleLowerCase()
 
   return {
-    id: messageData.id,
-    text: messageData.text,
+    id: messageData.id ?? messageData.message_id,
+    text: typeof text === 'string' ? text : '',
     time: formatChatTime(messageData.created_at),
-    fromMe: messageData.sender_type === 'user' || sender.type === 'user',
-    senderName: sender.display_name || 'Sin nombre',
+    fromMe:
+      direction === 'outgoing'
+        ? true
+        : direction === 'incoming'
+          ? false
+          : messageData.sender_type === 'user' || sender.type === 'user' || messageData.from_me === true,
+    senderName: sender.display_name ?? messageData.sender_name ?? 'Sin nombre',
     sender,
     files: normalizeFiles(messageData.files),
   }
@@ -326,9 +438,12 @@ const updateChatMessages = (chatId, messagesData) => {
     return
   }
 
-  const messages = Array.isArray(messagesData.messages)
-    ? messagesData.messages.map(normalizeMessage)
-    : []
+  const messageList = Array.isArray(messagesData)
+    ? messagesData
+    : Array.isArray(messagesData.messages)
+      ? messagesData.messages
+      : []
+  const messages = messageList.map(normalizeMessage)
   const lastMessage = messages.at(-1)
 
   chats.value[chatIndex] = {
@@ -349,7 +464,14 @@ const loadChatMessages = async (chatId) => {
   let shouldScrollToBottom = false
 
   try {
-    const messagesData = await getChatMessages(chatId)
+    const chat = chats.value.find((item) => String(item.id) === String(chatId))
+    const messagesData =
+      chat?.channel === 'whatsapp'
+        ? await getChatMessagesWpp({
+            accessToken: getUserAccessToken(),
+            phone_number: chat.phone_number,
+          })
+        : await getChatMessages(chatId)
     updateChatMessages(chatId, messagesData)
     shouldScrollToBottom = true
   } catch (error) {
@@ -364,6 +486,13 @@ const loadChatMessages = async (chatId) => {
 }
 
 const loadSelectedChatData = async (chatId) => {
+  const chat = chats.value.find((item) => String(item.id) === String(chatId))
+
+  if (chat?.channel === 'whatsapp') {
+    await loadChatMessages(chatId)
+    return
+  }
+
   await Promise.all([loadChatDetail(chatId), loadChatMessages(chatId)])
 }
 
@@ -382,6 +511,11 @@ const activateChat = async (chatId, { openMobile = true } = {}) => {
   const requestId = ++selectedChatRequestId
 
   selectedChatId.value = chatId
+  messageSearch.value = ''
+  messageSearchVisible.value = false
+  matchingMessageIds.value = new Set()
+  selectedMatchIndex.value = -1
+  messageSearchRequestId += 1
   mobileConversationOpen.value = openMobile
   chatDetailError.value = ''
   closeChatWebSocket()
@@ -399,12 +533,26 @@ const activateChat = async (chatId, { openMobile = true } = {}) => {
   }
 }
 
-const fetchChats = async ({ preferredChatId = null } = {}) => {
+const fetchChats = async ({ preferredChatId = null, search = chatSearch.value } = {}) => {
+  const requestId = ++chatsRequestId
   chatsLoading.value = true
   chatsError.value = ''
 
   try {
-    const chatList = (await getChats()).map(normalizeChat)
+    const [chatsList, whatsappChatsList] = await Promise.all([getChats({ search }), getChatsWpp()])
+    const normalizedWhatsappChats = whatsappChatsList
+      .map(normalizeWhatsappChat)
+      .filter((chat) => {
+        const query = search.trim().toLocaleLowerCase()
+
+        return !query || `${chat.name} ${chat.description}`.toLocaleLowerCase().includes(query)
+      })
+    const chatList = [...chatsList.map(normalizeChat), ...normalizedWhatsappChats]
+
+    if (requestId !== chatsRequestId) {
+      return
+    }
+
     const preferredChat = preferredChatId
       ? chatList.find((chat) => String(chat.id) === String(preferredChatId))
       : null
@@ -420,14 +568,86 @@ const fetchChats = async ({ preferredChatId = null } = {}) => {
       closeChatWebSocket()
     }
   } catch (error) {
+    if (requestId !== chatsRequestId) {
+      return
+    }
+
     chatsError.value = error.message || 'Ocurrio un error al cargar los chats.'
   } finally {
-    chatsLoading.value = false
+    if (requestId === chatsRequestId) {
+      chatsLoading.value = false
+    }
   }
 }
 
 const handleChatCreated = async (createdChat) => {
   await fetchChats({ preferredChatId: getChatId(createdChat) })
+}
+
+const handleChatDeleted = async () => {
+  await fetchChats()
+}
+
+const handleChatSearch = (search) => {
+  const query = search ?? ''
+  chatSearch.value = query
+  fetchChats({ search: query })
+}
+
+const searchMessages = async (search) => {
+  const query = typeof search === 'string' ? search.trim() : ''
+  const requestId = ++messageSearchRequestId
+
+  if (!query || !selectedChatId.value) {
+    matchingMessageIds.value = new Set()
+    selectedMatchIndex.value = -1
+    messageSearchLoading.value = false
+    return
+  }
+
+  messageSearchLoading.value = true
+
+  try {
+    const searchResults = await searchChatsMessages(selectedChatId.value, { search: query })
+
+    if (requestId === messageSearchRequestId) {
+      matchingMessageIds.value = getSearchResultMessageIds(searchResults)
+      await nextTick()
+      selectedMatchIndex.value = matchingMessages.value.length ? 0 : -1
+      await scrollToSelectedMatch()
+    }
+  } catch (error) {
+    if (requestId === messageSearchRequestId) {
+      matchingMessageIds.value = new Set()
+      selectedMatchIndex.value = -1
+      console.error('Error al buscar mensajes del chat:', error)
+    }
+  } finally {
+    if (requestId === messageSearchRequestId) {
+      messageSearchLoading.value = false
+    }
+  }
+}
+
+const moveToMatch = async (direction) => {
+  const totalMatches = matchingMessages.value.length
+
+  if (!totalMatches) {
+    return
+  }
+
+  selectedMatchIndex.value = (selectedMatchIndex.value + direction + totalMatches) % totalMatches
+  await scrollToSelectedMatch()
+}
+
+const toggleMessageSearch = () => {
+  messageSearchVisible.value = !messageSearchVisible.value
+
+  if (!messageSearchVisible.value) {
+    messageSearch.value = ''
+    selectedMatchIndex.value = -1
+    searchMessages('')
+  }
 }
 
 const selectChat = async (chatId) => {
@@ -482,13 +702,29 @@ const sendMessage = async () => {
   sendMessageError.value = ''
 
   try {
-    await sendChatMessage({
-      chat_id: selectedChat.value.id,
-      sender_id: userId.value,
-      sender_type: 'user',
-      text,
-      file: selectedFile.value,
-    })
+    if (selectedChat.value.channel === 'whatsapp') {
+      if (selectedFile.value) {
+        throw new Error('El envío de archivos por WhatsApp aún no está disponible.')
+      }
+
+      if (!selectedChat.value.phone_number) {
+        throw new Error('El chat de WhatsApp no tiene un número de teléfono asociado.')
+      }
+
+      await sendWhatsappMessage({
+        to: selectedChat.value.phone_number,
+        text,
+      })
+      await loadChatMessages(selectedChat.value.id)
+    } else {
+      await sendChatMessage({
+        chat_id: selectedChat.value.id,
+        sender_id: userId.value,
+        sender_type: 'user',
+        text,
+        file: selectedFile.value,
+      })
+    }
 
     message.value = ''
     clearAttachment()
@@ -530,6 +766,7 @@ onBeforeUnmount(closeChatWebSocket)
         </div>
 
         <v-text-field
+          v-model="chatSearch"
           autocomplete="off"
           class="chat-search"
           color="primary"
@@ -539,6 +776,7 @@ onBeforeUnmount(closeChatWebSocket)
           prepend-inner-icon="mdi-magnify"
           single-line
           variant="outlined"
+          @update:model-value="handleChatSearch"
         />
 
         <div v-if="chatsLoading" class="chat-state">
@@ -567,12 +805,23 @@ onBeforeUnmount(closeChatWebSocket)
             @click="selectChat(chat.id)"
           >
             <template #prepend>
-              <v-avatar color="secondary" size="42">
-                <span class="avatar-text">{{ chat.name.charAt(0) }}</span>
+              <v-avatar :color="chat.channel === 'whatsapp' ? 'success' : 'secondary'" size="42">
+                <v-icon v-if="chat.channel === 'whatsapp'" icon="mdi-whatsapp" />
+                <span v-else class="avatar-text">{{ chat.name.charAt(0) }}</span>
               </v-avatar>
             </template>
 
-            <v-list-item-title>{{ chat.name }} #{{ chat.quotation_id }}</v-list-item-title>
+            <v-list-item-title>
+              {{ chat.name }}
+              <template v-if="chat.channel !== 'whatsapp'">#{{ chat.quotation_id }}</template>
+              <v-icon
+                v-else
+                class="ml-1"
+                color="success"
+                icon="mdi-whatsapp"
+                size="small"
+              />
+            </v-list-item-title>
             <v-list-item-subtitle>{{ truncateText(chat.description) }}</v-list-item-subtitle>
 
             <template #append>
@@ -597,12 +846,16 @@ onBeforeUnmount(closeChatWebSocket)
               @click="showChatList"
             />
 
-            <v-avatar color="primary" size="44">
-              <span class="avatar-text">{{ selectedChat.name.charAt(0) }}</span>
+            <v-avatar :color="selectedChat.channel === 'whatsapp' ? 'success' : 'primary'" size="44">
+              <v-icon v-if="selectedChat.channel === 'whatsapp'" icon="mdi-whatsapp" />
+              <span v-else class="avatar-text">{{ selectedChat.name.charAt(0) }}</span>
             </v-avatar>
 
             <div>
-              <h2>{{ selectedChat.name }} #{{ selectedChat.quotation_id }}</h2>
+              <h2>
+                {{ selectedChat.name }}
+                <template v-if="selectedChat.channel !== 'whatsapp'">#{{ selectedChat.quotation_id }}</template>
+              </h2>
               <p>{{ selectedChat.description }}</p>
               <p v-if="chatDetailLoading">Cargando miembros...</p>
               <p v-else-if="chatDetailError" class="conversation-error">{{ chatDetailError }}</p>
@@ -610,7 +863,55 @@ onBeforeUnmount(closeChatWebSocket)
             </div>
           </div>
 
-          <div class="conversation-actions">
+          <div v-if="selectedChat.channel !== 'whatsapp'" class="conversation-actions">
+            <v-text-field
+              v-if="messageSearchVisible"
+              v-model="messageSearch"
+              class="message-search"
+              clearable
+              density="compact"
+              hide-details
+              :loading="messageSearchLoading"
+              placeholder="Buscar mensaje"
+              prepend-inner-icon="mdi-magnify"
+              single-line
+              variant="outlined"
+              @update:model-value="searchMessages"
+            />
+            <span v-if="messageSearchVisible" class="message-search-count">
+              {{ matchingMessages.length ? `${selectedMatchIndex + 1}/${matchingMessages.length}` : '0/0' }}
+            </span>
+            <v-btn
+              v-if="messageSearchVisible"
+              aria-label="Coincidencia anterior"
+              color="primary"
+              icon="mdi-chevron-up"
+              :disabled="!matchingMessages.length"
+              size="small"
+              title="Coincidencia anterior"
+              variant="text"
+              @click="moveToMatch(-1)"
+            />
+            <v-btn
+              v-if="messageSearchVisible"
+              aria-label="Siguiente coincidencia"
+              color="primary"
+              icon="mdi-chevron-down"
+              :disabled="!matchingMessages.length"
+              size="small"
+              title="Siguiente coincidencia"
+              variant="text"
+              @click="moveToMatch(1)"
+            />
+            <v-btn
+              :aria-label="messageSearchVisible ? 'Cerrar búsqueda de mensajes' : 'Buscar mensajes'"
+              color="primary"
+              :icon="messageSearchVisible ? 'mdi-close' : 'mdi-magnify'"
+              size="small"
+              title="Buscar mensajes"
+              variant="text"
+              @click="toggleMessageSearch"
+            />
             <!--<v-btn color="primary" icon="mdi-phone-outline" size="small" variant="text" />-->
             <!--<v-btn color="primary" icon="mdi-account-multiple-plus" size="small" variant="text" />-->
             <dialogAddMember
@@ -618,7 +919,11 @@ onBeforeUnmount(closeChatWebSocket)
               :quotation-id="selectedChat.quotation_id"
               @member-added="refreshSelectedChat"
             />
-            <infoChatMembers :key="infoChatMembersKey" :chat-id="selectedChatId"/>
+            <infoChatMembers
+              :key="infoChatMembersKey"
+              :chat-id="selectedChatId"
+              @chat-deleted="handleChatDeleted"
+            />
           </div>
         </header>
 
@@ -642,12 +947,22 @@ onBeforeUnmount(closeChatWebSocket)
             <div
               v-for="item in selectedChat.messages"
               :key="item.id"
+              :ref="(element) => setMessageElement(item.id, element)"
               class="message-row"
-              :class="{ 'message-row-sent': item.fromMe }"
+              :class="{
+                'message-row-sent': item.fromMe,
+                'message-row-search-match': isMatchingMessage(item.id),
+                'message-row-search-active': String(item.id) === String(activeMatchingMessageId),
+              }"
             >
               <div class="message-bubble">
-                <small>{{ item.senderName }}</small>
-                <p>{{ item.text }}</p>
+                <small>{{ getMessageSenderName(item) }}</small>
+                <p>
+                  <template v-for="(part, index) in getHighlightedMessageParts(item.text)" :key="index">
+                    <mark v-if="isMatchingMessage(item.id) && part.isMatch">{{ part.text }}</mark>
+                    <template v-else>{{ part.text }}</template>
+                  </template>
+                </p>
                 <div v-if="item.files.length" class="message-attachments">
                   <div v-for="file in item.files" :key="`${file.name}-${file.url}`" class="message-attachment">
                     <img
@@ -759,10 +1074,12 @@ onBeforeUnmount(closeChatWebSocket)
 
 .chat-shell {
   display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(0, 820px);
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1080px);
   justify-content: center;
   gap: 16px;
   height: calc(100vh - 48px);
+  width: min(100%, 1436px);
+  margin: 0 auto;
   min-width: 0;
   overflow: visible;
   background: transparent;
@@ -953,6 +1270,32 @@ h2,
   padding: 0 !important;
 }
 
+.message-search {
+  width: 220px;
+}
+
+.message-search-count {
+  min-width: 34px;
+  color: rgb(var(--v-theme-textMuted));
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.message-row-search-match .message-bubble {
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-warning));
+}
+
+.message-row-search-active .message-bubble {
+  box-shadow: 0 0 0 3px orangered;
+}
+
+.message-bubble mark {
+  padding: 0 2px;
+  border-radius: 2px;
+  background: rgb(var(--v-theme-warning));
+  color: rgb(var(--v-theme-on-warning));
+}
+
 .mobile-back-button {
   display: none;
 }
@@ -1003,7 +1346,7 @@ h2,
 }
 
 .message-bubble {
-  max-width: min(70%, 560px);
+  max-width: min(78%, 760px);
   padding: 12px 14px;
   border: 1px solid rgb(var(--v-theme-border));
   border-radius: 8px;
@@ -1175,6 +1518,10 @@ h2,
 
   .conversation-actions {
     gap: 2px;
+  }
+
+  .message-search {
+    width: 150px;
   }
 
   .conversation-actions :deep(.v-btn) {

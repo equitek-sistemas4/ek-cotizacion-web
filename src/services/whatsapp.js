@@ -2,6 +2,53 @@ import { createApiClient } from '@/services/http'
 
 const whatsappApi = createApiClient()
 
+
+const getAuthorizationConfig = (accessToken) => {
+  if (!accessToken) {
+    return {}
+  }
+
+  return {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  }
+}
+
+
+export const getChatMessagesWpp = async ({ accessToken, phone_number } = {}) => {
+  const config = getAuthorizationConfig(accessToken)
+
+  if (phone_number) {
+    config.params = { phone_number }
+  }
+
+  const response = await whatsappApi.get(
+    `/whatsapp/messages/received`,
+    config,
+  )
+
+  return response.data?.data ?? null
+}
+
+
+export const sendWhatsappMessage = async ({
+  to,
+  text,
+}) => {
+  const body = new URLSearchParams()
+    body.append('to', to)
+    body.append('text', text)
+    const response = await whatsappApi.post(`/whatsapp/send`, body, {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+    })
+
+    return response.data?.data ?? response.data
+}
+
+
 export const sendTemplateMeta = async ({
   to,
   text,

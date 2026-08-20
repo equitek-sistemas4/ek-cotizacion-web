@@ -7,11 +7,16 @@
       :type="alertType"
     />
 
-    <v-dialog
-      v-model="dialog"
-      max-width="600"
+    <dialog-create-whatsapp-chat
+      v-model="whatsappDialog"
+      @created="handleWhatsappChatCreated"
+    />
+
+    <v-speed-dial
+      location="bottom center"
+      transition="slide-y-reverse-transition"
     >
-      <template v-slot:activator="{ props: activatorProps }">
+      <template #activator="{ props: activatorProps }">
         <v-btn
           class="text-none font-weight-regular"
           icon="mdi-plus"
@@ -21,6 +26,25 @@
         ></v-btn>
       </template>
 
+      <v-btn
+        aria-label="Crear chat"
+        color="primary"
+        icon="mdi-chat-plus"
+        @click="dialog = true"
+      ></v-btn>
+
+      <v-btn
+        aria-label="Crear conversación de WhatsApp"
+        color="success"
+        icon="mdi-whatsapp"
+        @click="whatsappDialog = true"
+      ></v-btn>
+    </v-speed-dial>
+
+    <v-dialog
+      v-model="dialog"
+      max-width="600"
+    >
       <v-card
         prepend-icon="mdi-chat-plus"
         title="Crear chat"
@@ -137,11 +161,13 @@
     import { createLinkQuotation, getQuotationContacts } from '@/services/quotations'
     import { createContact, validateContactCompany } from '@/services/contacts'
     import MessageAlertDialog from '@/components/MessageAlertDialog.vue'
+    import dialogCreateWhatsappChat from '@/components/dialogCreateWhatsappChat.vue'
 
     const emit = defineEmits(['created'])
 
     const authStore = useAuthStore()
     const dialog = shallowRef(false)
+    const whatsappDialog = shallowRef(false)
     const contacts = ref([])
     const chatsError = ref('')
     const userId = ref(null)
@@ -161,6 +187,10 @@
         alertTitle.value = title
         alertMessage.value = message
         alertDialog.value = true
+    }
+
+    const handleWhatsappChatCreated = (createdChat) => {
+        emit('created', createdChat)
     }
 
     const clearForm = () => {

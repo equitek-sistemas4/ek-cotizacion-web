@@ -8,6 +8,7 @@ import {
   getChatMemberByCode,
 } from '@/services/chats'
 import { createNotification } from '@/services/notifications'
+import { createQuotationEvent } from '@/services/quotation_events'
 import dialogCreateRequest from '@/components/dialogCreateRequest.vue'
 import infoChatMembers from '@/components/infoChatMembers.vue'
 import infoClientQuotation from '@/components/infoClientQuotation.vue'
@@ -36,6 +37,7 @@ const quotationId = ref(null)
 const membersDialogOpen = ref(false)
 const infoChatMembersKey = ref(0)
 let reconnectTimer = null
+let quotationOpenRegistered = false
 
 const chatTitle = computed(() => chat.value?.name + (chat.value?.quotation_id ? ` #${chat.value.quotation_id}` : '') || 'Chat')
 const chatDescription = computed(() => chat.value?.description || '')
@@ -280,6 +282,19 @@ const loadChat = async () => {
     token.value = chatMember?.token ?? null
     quotationId.value = chatMember?.quotation_id ?? null
 
+    if (!quotationOpenRegistered && quotationId.value && contactId.value) {
+      quotationOpenRegistered = true
+      createQuotationEvent({
+        quotation_id: quotationId.value,
+        contact_id: contactId.value,
+        event_name: 'quotation_opened',
+        section_key: '',
+        element_key: '',
+      }).catch((error) => {
+        console.error('No se pudo registrar la apertura de la cotización:', error)
+      })
+    }
+
     const [chatDetail, messagesData] = await Promise.all([
       getChatById(chatId.value, { accessToken: token.value }),
       getChatMessages(chatId.value, { accessToken: token.value }),
@@ -402,6 +417,7 @@ onBeforeUnmount(() => {
       :contact-name="contactName"
       :error-message="errorMessage"
       :loading="loading"
+      :contact-id="contactId"
       :quotation-id="quotationId"
       :access-token="token"
     />

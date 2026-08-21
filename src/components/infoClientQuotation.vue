@@ -9,18 +9,55 @@ import linksQuotationComponent from '@/components/linksQuotationComponent.vue'
 import productsQuotationComponent from '@/components/productsQuotationComponent.vue'
 import scopesQuotationComponent from '@/components/scopesQuotationComponent.vue'
 import costsQuotationComponent from '@/components/costsQuotationComponent.vue'
+import { createQuotationEvent } from '@/services/quotation_events'
 
-defineProps({
+const props = defineProps({
   loading: { type: Boolean, default: false },
   errorMessage: { type: String, default: '' },
   chatTitle: { type: String, default: 'Chat' },
   contactName: { type: String, default: 'Contacto' },
+  contactId: { type: [Number, String], default: null },
   quotationId: { type: [Number, String], default: null },
   accessToken: { type: String, default: '' },
 })
 
 const activeTab = ref('inicio')
 const mobileTabsMenu = ref(false)
+
+const sectionKeys = {
+  inicio: 'home',
+  productos: 'products',
+  equipos: 'equipment',
+  precios: 'prices',
+  alcances: 'scopes',
+  condiciones: 'conditions',
+  financiero: 'financial',
+  ligas: 'links',
+}
+
+const registerSectionOpen = (tab) => {
+  const sectionKey = sectionKeys[tab]
+
+  if (!props.quotationId || !props.contactId || !sectionKey) {
+    return
+  }
+
+  createQuotationEvent({
+    quotation_id: props.quotationId,
+    contact_id: props.contactId,
+    event_name: 'section_opened',
+    section_key: sectionKey,
+    element_key: '',
+  }).catch((error) => {
+    console.error(`No se pudo registrar la apertura de ${sectionKey}:`, error)
+  })
+}
+
+const selectTab = (tab) => {
+  activeTab.value = tab
+  mobileTabsMenu.value = false
+  registerSectionOpen(tab)
+}
 </script>
 
 <template>
@@ -37,19 +74,19 @@ const mobileTabsMenu = ref(false)
         density="comfortable"
         show-arrows
       >
-        <v-tab value="inicio">
+        <v-tab value="inicio" @click="registerSectionOpen('inicio')">
           <v-icon class="tab-icon" icon="mdi-home"></v-icon>
           Inicio
         </v-tab>
-        <v-tab value="productos">
+        <v-tab value="productos" @click="registerSectionOpen('productos')">
           <v-icon class="tab-icon" icon="mdi-file-check"></v-icon>
           Requerimiento de Produccion
         </v-tab>
-        <v-tab value="equipos">
+        <v-tab value="equipos" @click="registerSectionOpen('equipos')">
           <v-icon class="tab-icon" icon="mdi-laptop"></v-icon>
           Equipos
         </v-tab>
-        <v-tab value="precios">
+        <v-tab value="precios" @click="registerSectionOpen('precios')">
           <v-icon class="tab-icon" icon="mdi-tag"></v-icon>
           Precios Condiciones y Garantias
         </v-tab>
@@ -61,11 +98,11 @@ const mobileTabsMenu = ref(false)
           <v-icon class="tab-icon" icon="mdi-file-document-check"></v-icon>
           Condiciones
         </v-tab>-->
-        <v-tab value="financiero">
+        <v-tab value="financiero" @click="registerSectionOpen('financiero')">
           <v-icon class="tab-icon" icon="mdi-cash"></v-icon>
           Analisis Financiero
         </v-tab>
-        <v-tab value="ligas">
+        <v-tab value="ligas" @click="registerSectionOpen('ligas')">
           <v-icon class="tab-icon" icon="mdi-link"></v-icon>
           Ligas
         </v-tab>
@@ -87,42 +124,42 @@ const mobileTabsMenu = ref(false)
             <v-list-item
               prepend-icon="mdi-home"
               title="Inicio"
-              @click="activeTab = 'inicio'; mobileTabsMenu = false"
+              @click="selectTab('inicio')"
             />
             <v-list-item
               prepend-icon="mdi-laptop"
               title="Equipos"
-              @click="activeTab = 'equipos'; mobileTabsMenu = false"
+              @click="selectTab('equipos')"
             />
             <v-list-item
               prepend-icon="mdi-file-check"
               title="Productos"
-              @click="activeTab = 'productos'; mobileTabsMenu = false"
+              @click="selectTab('productos')"
             />
             <v-list-item
               prepend-icon="mdi-tag"
               title="Precios"
-              @click="activeTab = 'precios'; mobileTabsMenu = false"
+              @click="selectTab('precios')"
             />
             <v-list-item
               prepend-icon="mdi-target"
               title="Alcances"
-              @click="activeTab = 'alcances'; mobileTabsMenu = false"
+              @click="selectTab('alcances')"
             />
             <v-list-item
               prepend-icon="mdi-file-document-check"
               title="Condiciones"
-              @click="activeTab = 'condiciones'; mobileTabsMenu = false"
+              @click="selectTab('condiciones')"
             />
             <v-list-item
               prepend-icon="mdi-cash"
               title="Financiero"
-              @click="activeTab = 'financiero'; mobileTabsMenu = false"
+              @click="selectTab('financiero')"
             />
             <v-list-item
               prepend-icon="mdi-link"
               title="Ligas"
-              @click="activeTab = 'ligas'; mobileTabsMenu = false"
+              @click="selectTab('ligas')"
             />
           </v-list>
         </v-menu>

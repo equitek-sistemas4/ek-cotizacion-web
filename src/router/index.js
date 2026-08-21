@@ -66,6 +66,24 @@ const router = createRouter({
       },
     },
     {
+      path: '/quotation-events',
+      name: 'quotation-events',
+      component: () => import('../views/QuotationEventsView.vue'),
+      meta: {
+        icon: 'mdi-chart-timeline-variant',
+        navLabel: 'Actividad de cotizaciones',
+        showInNav: true,
+      },
+    },
+    {
+      path: '/quotation-events/:quotationId',
+      name: 'quotation-event-details',
+      component: () => import('../views/QuotationEventDetailsView.vue'),
+      meta: {
+        hideSidebar: true,
+      },
+    },
+    {
       path: '/contact-chat/:access_code',
       name: 'contact-chat',
       component: () => import('../views/ContactChatView.vue'),

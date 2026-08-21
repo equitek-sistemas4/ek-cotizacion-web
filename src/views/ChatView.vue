@@ -184,7 +184,12 @@ const formatChatTime = (dateValue) => {
     return ''
   }
 
-  const date = new Date(dateValue)
+  // La API de Meta entrega `timestamp` como segundos Unix, mientras que el
+  // resto de los mensajes del sistema usa fechas ISO.
+  const numericDateValue = Number(dateValue)
+  const date = Number.isFinite(numericDateValue) && String(dateValue).trim() !== ''
+    ? new Date(numericDateValue < 100000000000 ? numericDateValue * 1000 : numericDateValue)
+    : new Date(dateValue)
 
   if (Number.isNaN(date.getTime())) {
     return ''
@@ -289,7 +294,7 @@ const normalizeMessage = (messageItem) => {
   return {
     id: messageData.id ?? messageData.message_id,
     text: typeof text === 'string' ? text : '',
-    time: formatChatTime(messageData.created_at),
+    time: formatChatTime(messageData.created_at ?? messageData.timestamp),
     fromMe:
       direction === 'outgoing'
         ? true
@@ -302,13 +307,17 @@ const normalizeMessage = (messageItem) => {
   }
 }
 
-const getChatWebSocketUrl = (chatId) => {
+const getChatWebSocketUrl = (chat) => {
   const baseUrl = new URL(import.meta.env.VITE_API_BASE_URL)
   const accessToken = getUserAccessToken()
 
   baseUrl.protocol = baseUrl.protocol === 'https:' ? 'wss:' : 'ws:'
-  baseUrl.pathname = `/chats/${chatId}/ws`
+  baseUrl.pathname = chat.channel === 'whatsapp' ? '/chats/whatsapp/ws' : `/chats/${chat.id}/ws`
   baseUrl.search = ''
+
+  if (chat.channel === 'whatsapp' && chat.phone_number) {
+    baseUrl.searchParams.set('phone_number', chat.phone_number)
+  }
 
   if (accessToken) {
     baseUrl.searchParams.set('token', accessToken)
@@ -317,25 +326,45 @@ const getChatWebSocketUrl = (chatId) => {
   return baseUrl.toString()
 }
 
-const getIncomingMessagePayload = (eventData) => {
+const getIncomingMessagePayloads = (eventData) => {
   const payload = eventData?.data ?? eventData
-  const messagePayload = Array.isArray(payload) ? payload[0] : payload
+  const messagePayloads = Array.isArray(payload) ? payload : [payload]
 
-  if (messagePayload?.message) {
-    return {
-      ...messagePayload,
-      sender: messagePayload.sender ?? {},
+  return messagePayloads.flatMap((messagePayload) => {
+    if (Array.isArray(messagePayload?.messages)) {
+      return messagePayload.messages.map((message) => ({ message, sender: messagePayload.sender ?? {} }))
     }
-  }
 
-  if (messagePayload?.id && messagePayload?.text) {
-    return {
-      message: messagePayload,
-      sender: messagePayload.sender ?? {},
+    // Formato original de los eventos de WhatsApp Cloud API.
+    const webhookMessages = messagePayload?.entry?.flatMap((entry) =>
+      entry.changes?.flatMap((change) =>
+        (change.value?.messages ?? []).map((message) => ({
+          message,
+          sender: change.value?.contacts?.[0] ?? {},
+        })),
+      ) ?? [],
+    ) ?? []
+
+    if (webhookMessages.length) {
+      return webhookMessages
     }
-  }
 
-  return null
+    if (messagePayload?.message) {
+      return [{
+        ...messagePayload,
+        sender: messagePayload.sender ?? {},
+      }]
+    }
+
+    if (messagePayload?.id && (messagePayload?.text || messagePayload?.body)) {
+      return [{
+        message: messagePayload,
+        sender: messagePayload.sender ?? {},
+      }]
+    }
+
+    return []
+  })
 }
 
 const appendIncomingMessage = async (chatId, messageItem) => {
@@ -379,15 +408,21 @@ const connectChatWebSocket = (chatId) => {
     return
   }
 
-  const socket = new WebSocket(getChatWebSocketUrl(chatId))
+  const chat = chats.value.find((item) => String(item.id) === String(chatId))
+
+  if (!chat || (chat.channel === 'whatsapp' && !chat.phone_number)) {
+    return
+  }
+
+  const socket = new WebSocket(getChatWebSocketUrl(chat))
   chatSocket.value = socket
 
   socket.onmessage = (event) => {
     try {
       const eventData = JSON.parse(event.data)
-      appendIncomingMessage(chatId, getIncomingMessagePayload(eventData))
+      getIncomingMessagePayloads(eventData).forEach((messageItem) => appendIncomingMessage(chatId, messageItem))
     } catch {
-      appendIncomingMessage(chatId, getIncomingMessagePayload(event.data))
+      getIncomingMessagePayloads(event.data).forEach((messageItem) => appendIncomingMessage(chatId, messageItem))
     }
   }
 

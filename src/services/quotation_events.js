@@ -34,7 +34,8 @@ export const createQuotationEvent = async ({
   contact_id,
   event_name,
   section_key,
-  element_key
+  element_key,
+  accessToken,
 }) => {
   const body = new URLSearchParams()
   body.append('quotation_id', quotation_id)
@@ -42,8 +43,11 @@ export const createQuotationEvent = async ({
   body.append('event_name', event_name)
   body.append('section_key', section_key)
   body.append('element_key', element_key)
+  const authorizationConfig = getAuthorizationConfig(accessToken)
   const response = await quotEventsApi.post(`/quotation-events/create`, body, {
+    ...authorizationConfig,
     headers: {
+      ...authorizationConfig.headers,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   })

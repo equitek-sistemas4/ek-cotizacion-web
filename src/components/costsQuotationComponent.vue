@@ -22,6 +22,12 @@ const equipmentHeaders = [
   { title: 'Costo', key: 'costo', align: 'end' },
 ]
 
+const currencyCode = computed(() => {
+  const currency = String(quotationInfo.value?.moneda_codigo ?? '').trim().toUpperCase()
+
+  return /^[A-Z]{3}$/.test(currency) ? currency : 'MXN'
+})
+
 const toNumber = (value) => {
   const parsedValue = Number(value)
 
@@ -57,7 +63,8 @@ const formatCurrency = (value) => {
 
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
-    currency: 'MXN',
+    currency: currencyCode.value,
+    currencyDisplay: 'code',
   }).format(Number(value))
 }
 
@@ -221,7 +228,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
       <section class="conditions-section">
         <h2>Condiciones comerciales</h2>
         <v-row>
-          <v-col cols="12" md="8">
+          <v-col cols="12">
             <div class="conditions-list">
               <v-card v-for="condition in conditions" :key="condition.idconds" variant="elevated">
                 <v-card-title><strong>{{ condition.tipo }}</strong></v-card-title>
@@ -232,9 +239,43 @@ watch(() => [props.quotationId, props.accessToken], () => {
               </v-card>
             </div>
           </v-col>
-          <v-col cols="12" md="4">
+        </v-row>
+      </section>
+
+      <br/>
+
+      <v-row>
+        <v-col cols="12" class="conditions-section">
+          <h2>Compromiso de Garantía</h2>
             <v-card>
-              <v-card-title><strong>REFERENCIAS BANCARIAS</strong></v-card-title>
+              <v-card-text>
+                <span>
+                  Los equipos amparados en está cotización, están garantizados por un periodo de 12 meses a partir de la fecha de entrega, contra cualquier defecto de
+                  fabricación, diseño o mano de obra. Garantizamos el buen funcionamiento del equipo en base a las muestras proporcionadas por el cliente; en caso de que no
+                  se hayan proporcionado muestras o que estas sean diferentes y se requiera realizar modificaciones al equipo, para que este funcione correctamente, el costo
+                  de estas correrán por cuenta del cliente. Esta garantía cubre la mano de obra requerida para reparar la falla o problema, no incluye los viáticos, transportes o
+                  gastos asociados en los que se incurra, tampoco cubre piezas o componentes que por desgaste natural, falta de mantenimiento adecuado, negligencia, abuso
+                  o mal uso, por modificaciones hechas por otros sin el consentimiento por escrito de Equitek, S.A. de C.V. se hayan dañado u operen en forma incorrecta. No
+                  cubre los daños causados a los componentes eléctricos o electrónicos causados por mala conexión, sobre voltajes o variaciones de energía eléctrica causados
+                  por fenómenos naturales, fallas en las instalaciones eléctricas del cliente o el proveedor de servicio eléctrico. No cubre los daños a componentes neumáticos
+                  causados por falta de mantenimiento, humedad excesiva o condensada, exceso de presión o suciedad en la línea de aire comprimido. Equitek, S.A. de C.V. se
+                  reserva el derecho de reparar o reponer, la o las partes en cuestión, según lo juzgue conveniente.
+                  Equitek S.A. de C.V. no se hace responsable por cualquier pérdida económica o material sufrida por causas imputables a nuestros equipos. Las capacidades de
+                  producción estipuladas en esta cotización son estimadas; pudiendo variar estas hasta un 15%. En caso de que se integren equipos de terceros al equipo
+                  fabricado por Equitek, la garantía de estos será respaldada por los fabricantes de los mismos. <br/><br/>
+                  <strong>Para ejercer la garantía de los equipos, deben estar cubiertas al 100% las condiciones comerciales que se establecen en la cotización.</strong>
+                </span>
+              </v-card-text>
+            </v-card>
+          </v-col>
+      </v-row>
+
+      <br/>
+
+      <v-row>
+        <v-col cols="12" class="conditions-section">
+            <h2>Referencias Bancarias</h2>
+            <v-card>
               <v-card-text>
                 <span>
                   RFC: EQU-000919-7M3 <br /><br />
@@ -252,8 +293,8 @@ watch(() => [props.quotationId, props.accessToken], () => {
               </v-card-text>
             </v-card>
           </v-col>
-        </v-row>
-      </section>
+      </v-row>
+
     </template>
   </section>
 </template>

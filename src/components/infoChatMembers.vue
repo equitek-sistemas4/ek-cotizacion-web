@@ -12,6 +12,10 @@ const props = defineProps({
     type: [Number, String],
     default: null,
   },
+  accessToken: {
+    type: String,
+    default: '',
+  },
   hideMemberLinkActions: {
     type: Boolean,
     default: false,
@@ -68,7 +72,7 @@ const loadChat = async () => {
   loading.value = true
 
   try {
-    chat.value = await getChatById(props.chatId)
+    chat.value = await getChatById(props.chatId, { accessToken: props.accessToken })
     console.log('Chat details loaded:', chat.value)
   } catch (error) {
     errorMessage.value = error.message || 'Ocurrio un error al cargar la informacion del chat.'

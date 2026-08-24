@@ -154,12 +154,14 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
             <div>
               <span>Producto</span><strong>{{ prospectInfo.producto || 'Sin información' }}</strong>
             </div>
-            <div>
-              <span>Tamaño</span><strong>{{ prospectInfo.tamano || 'Sin información' }}</strong>
-            </div>
           </v-card-text>
         </v-card>
       </div>
+
+      <v-card v-if="prospectInfo?.comentario" class="comments-card" variant="elevated">
+        <v-card-title>Comentarios</v-card-title>
+        <v-card-text>{{ prospectInfo.comentario }}</v-card-text>
+      </v-card>
 
       <v-card v-if="equipmentSummary" class="equipment-summary-card" variant="elevated">
         <v-card-title>Resumen de equipos</v-card-title>
@@ -195,10 +197,6 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
         </v-card-text>
       </v-card>-->
 
-      <v-card v-if="prospectInfo?.comentario" class="comments-card" variant="elevated">
-        <v-card-title>Comentarios</v-card-title>
-        <v-card-text>{{ prospectInfo.comentario }}</v-card-text>
-      </v-card>
     </template>
   </section>
 </template>

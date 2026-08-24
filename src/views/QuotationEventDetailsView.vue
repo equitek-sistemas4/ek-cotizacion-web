@@ -13,6 +13,7 @@ const quotation = ref(null)
 const quotationOpenedCount = ref(0)
 const quotationOpenedSeries = ref([0])
 const quotationOpenedLabels = ref(['Sin aperturas'])
+const activeOpeningIndex = ref(null)
 const sectionCounts = ref([])
 const contactStats = ref([])
 const trackedSections = ['home', 'products', 'equipment', 'prices', 'financial', 'links']
@@ -20,6 +21,18 @@ const latestInteraction = ref(null)
 const topInteractingContact = ref(null)
 
 const maxSectionCount = computed(() => Math.max(...sectionCounts.value.map((section) => section.count), 1))
+const activeOpening = computed(() => {
+  const index = activeOpeningIndex.value
+
+  if (index === null || !quotationOpenedCount.value) {
+    return null
+  }
+
+  return {
+    date: quotationOpenedLabels.value[index],
+    count: quotationOpenedSeries.value[index],
+  }
+})
 
 const formatSectionName = (section) => ({
   home: 'Inicio',
@@ -57,6 +70,33 @@ const formatSparklineDate = (dateValue) => {
     : new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(date)
 }
 
+const getDateKey = (dateValue) => {
+  const date = new Date(dateValue)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return [date.getFullYear(), date.getMonth(), date.getDate()].join('-')
+}
+
+const buildDailyOpeningStats = (events) => {
+  const openingsByDate = events.reduce((result, event) => {
+    const dateKey = getDateKey(event?.created_at)
+
+    if (!dateKey) {
+      return result
+    }
+
+    result[dateKey] ??= { date: event.created_at, count: 0 }
+    result[dateKey].count += 1
+    return result
+  }, {})
+
+  return Object.values(openingsByDate)
+    .sort((first, second) => new Date(first.date) - new Date(second.date))
+}
+
 const formatDate = (dateValue) => {
   if (!dateValue) {
     return 'Sin interacciones'
@@ -66,6 +106,36 @@ const formatDate = (dateValue) => {
   return Number.isNaN(date.getTime())
     ? String(dateValue)
     : new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+}
+
+const updateActiveOpening = (event) => {
+  if (!quotationOpenedCount.value) {
+    return
+  }
+
+  const { left, width } = event.currentTarget.getBoundingClientRect()
+  const padding = 0.16
+  const relativePosition = Math.min(Math.max((event.clientX - left) / width, padding), 1 - padding)
+  const usablePosition = (relativePosition - padding) / (1 - (padding * 2))
+
+  activeOpeningIndex.value = Math.round(usablePosition * (quotationOpenedSeries.value.length - 1))
+}
+
+const navigateOpenings = (event) => {
+  if (!quotationOpenedCount.value || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+    return
+  }
+
+  event.preventDefault()
+  const lastIndex = quotationOpenedSeries.value.length - 1
+  const currentIndex = activeOpeningIndex.value ?? 0
+
+  activeOpeningIndex.value = {
+    ArrowLeft: Math.max(currentIndex - 1, 0),
+    ArrowRight: Math.min(currentIndex + 1, lastIndex),
+    Home: 0,
+    End: lastIndex,
+  }[event.key]
 }
 
 const loadEventSummary = async () => {
@@ -95,13 +165,16 @@ const loadEventSummary = async () => {
       .sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
 
     quotationOpenedCount.value = quotationOpenedEvents.length
-    quotationOpenedSeries.value = quotationOpenedEvents.length
-      ? quotationOpenedEvents.map((_, index) => index + 1)
+    const dailyOpeningStats = buildDailyOpeningStats(quotationOpenedEvents)
+    quotationOpenedSeries.value = dailyOpeningStats.length
+      ? dailyOpeningStats.map((day) => day.count)
       : [0]
-    quotationOpenedLabels.value = quotationOpenedEvents.length
-      ? quotationOpenedEvents.map((event) => formatSparklineDate(event.created_at))
+    quotationOpenedLabels.value = dailyOpeningStats.length
+      ? dailyOpeningStats.map((day) => formatSparklineDate(day.date))
       : ['Sin aperturas']
+    activeOpeningIndex.value = null
 
+    console.log('quotationOpenedSeries', quotationOpenedSeries)
     sectionCounts.value = buildSectionCounts(events)
     latestInteraction.value = events.reduce((latest, event) => {
       if (!event?.created_at || (latest?.created_at && new Date(event.created_at) <= new Date(latest.created_at))) {
@@ -121,6 +194,7 @@ const loadEventSummary = async () => {
         id: contactId,
         name: getContactName(contact),
         company: contact?.company ?? contact?.empresa ?? '',
+        position: contact?.position ?? '',
         quotationOpenedCount: eventsByContact.filter((event) => event?.event_name === 'quotation_opened').length,
         sectionCounts: contactSectionCounts,
         totalInteractions: eventsByContact.length,
@@ -195,20 +269,41 @@ onMounted(loadEventSummary)
                   <span>Veces que los contactos abrieron esta cotización</span>
                   <v-chip variant="flat" color="secondary" size="large">{{ quotationOpenedCount }}</v-chip>
                 </div>
-                <v-sparkline
-                  :gradient="['#1976d2', '#26a69a']"
-                  :labels="quotationOpenedLabels"
-                  :model-value="quotationOpenedSeries"
-                  auto-draw
-                  color="primary"
-                  fill
-                  gradient-direction="top"
-                  height="90"
-                  label-size="10"
-                  line-width="2"
-                  padding="16"
-                  smooth="8"
-                />
+                <div
+                  class="opening-sparkline-interaction"
+                  role="img"
+                  :aria-label="activeOpening
+                    ? `${activeOpening.date}: ${activeOpening.count} aperturas`
+                    : 'Gráfica de aperturas por fecha. Usa las flechas para consultar cada día.'"
+                  tabindex="0"
+                  @focus="activeOpeningIndex = quotationOpenedCount ? 0 : null"
+                  @keydown="navigateOpenings"
+                  @mouseleave="activeOpeningIndex = null"
+                  @mousemove="updateActiveOpening"
+                >
+                  <v-sparkline
+                    :gradient="['#1976d2', '#26a69a']"
+                    :labels="quotationOpenedLabels"
+                    :model-value="quotationOpenedSeries"
+                    color="primary"
+                    fill
+                    gradient-direction="top"
+                    height="90"
+                    label-size="10"
+                    line-width="2"
+                    padding="16"
+                    smooth="8"
+                  />
+                  <div
+                    v-if="activeOpening"
+                    class="opening-sparkline-tooltip"
+                    role="status"
+                    :style="{ left: `${(activeOpeningIndex / Math.max(quotationOpenedSeries.length - 1, 1)) * 100}%` }"
+                  >
+                    <strong>{{ activeOpening.count }}</strong>
+                    <span>{{ activeOpening.date }}</span>
+                  </div>
+                </div>
                 <div class="opening-count">{{ quotationOpenedCount }}</div>
                 <div class="opening-bar-track">
                   <div class="opening-bar-fill" :class="{ 'has-value': quotationOpenedCount }" />
@@ -251,6 +346,7 @@ onMounted(loadEventSummary)
             <v-card class="contact-stat-card h-100" variant="elevated">
               <v-card-title>{{ contact.name }}</v-card-title>
               <v-card-subtitle>{{ contact.company || 'Sin empresa' }}</v-card-subtitle>
+              <v-card-subtitle v-if="contact.position">{{ contact.position }}</v-card-subtitle>
               <v-card-text>
                 <div class="contact-opening-count">
                   <span>Aperturas de cotización</span>
@@ -314,6 +410,36 @@ onMounted(loadEventSummary)
 .opening-sparkline-summary strong {
   color: white;
   font-size: 1.75rem;
+}
+
+.opening-sparkline-interaction {
+  position: relative;
+  cursor: crosshair;
+  outline: none;
+}
+
+.opening-sparkline-interaction:focus-visible {
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-primary));
+}
+
+.opening-sparkline-tooltip {
+  position: absolute;
+  top: 4px;
+  display: grid;
+  min-width: max-content;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgb(var(--v-theme-surface-variant));
+  color: rgb(var(--v-theme-on-surface-variant));
+  font-size: 0.75rem;
+  line-height: 1.2;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.opening-sparkline-tooltip strong {
+  font-size: 1rem;
 }
 
 .opening-chart > .opening-count,

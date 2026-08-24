@@ -48,6 +48,7 @@ const registerSectionOpen = (tab) => {
     event_name: 'section_opened',
     section_key: sectionKey,
     element_key: '',
+    accessToken: props.accessToken,
   }).catch((error) => {
     console.error(`No se pudo registrar la apertura de ${sectionKey}:`, error)
   })
@@ -80,7 +81,7 @@ const selectTab = (tab) => {
         </v-tab>
         <v-tab value="productos" @click="registerSectionOpen('productos')">
           <v-icon class="tab-icon" icon="mdi-file-check"></v-icon>
-          Requerimiento de Produccion
+          Requerimientos / Alcances del Proyecto
         </v-tab>
         <v-tab value="equipos" @click="registerSectionOpen('equipos')">
           <v-icon class="tab-icon" icon="mdi-laptop"></v-icon>

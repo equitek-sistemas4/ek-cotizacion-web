@@ -17,10 +17,10 @@ const quotationInfo = ref(null)
 const prospectInfo = ref(null)
 const quotationFiles = ref([])
 const productFiles = ref({})
-const productImagePreviews = ref({})
 const productUploads = ref({})
 const productUploadErrors = ref({})
 const productUploadSuccesses = ref({})
+const productUploadSuccessTimers = new Map()
 const selectedImage = ref('')
 const imagePreviewOpen = ref(false)
 const defaultProductImage = 'https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg'
@@ -31,7 +31,6 @@ const presentationHeaders = [
 ]
 
 const getProductFiles = (product) => productFiles.value[product?.idprod] ?? []
-const getProductImages = (product) => productImagePreviews.value[product?.idprod] ?? []
 const getQuotationFilesByProduct = (product) => {
   const productId = product?.idprod
 
@@ -64,10 +63,16 @@ const isProductUploading = (product) => Boolean(productUploads.value[product?.id
 const getProductUploadError = (product) => productUploadErrors.value[product?.idprod] ?? ''
 const getProductUploadSuccess = (product) => productUploadSuccesses.value[product?.idprod] ?? ''
 
-const revokeProductPreview = (productId) => {
-  const previews = productImagePreviews.value[productId] ?? []
+const showProductUploadSuccess = (productId, message) => {
+  clearTimeout(productUploadSuccessTimers.get(productId))
+  productUploadSuccesses.value = { ...productUploadSuccesses.value, [productId]: message }
 
-  previews.forEach((preview) => URL.revokeObjectURL(preview))
+  productUploadSuccessTimers.set(productId, window.setTimeout(() => {
+    const successes = { ...productUploadSuccesses.value }
+    delete successes[productId]
+    productUploadSuccesses.value = successes
+    productUploadSuccessTimers.delete(productId)
+  }, 4000))
 }
 
 const setProductFiles = (product, files) => {
@@ -81,19 +86,6 @@ const setProductFiles = (product, files) => {
     ...productFiles.value,
     [product.idprod]: normalizedFiles,
   }
-
-  revokeProductPreview(product.idprod)
-
-  const images = normalizedFiles.filter((file) => file?.type?.startsWith('image/'))
-  const previews = { ...productImagePreviews.value }
-
-  if (images.length) {
-    previews[product.idprod] = images.map((image) => URL.createObjectURL(image))
-  } else {
-    delete previews[product.idprod]
-  }
-
-  productImagePreviews.value = previews
 }
 
 const openImagePreview = (imageUrl) => {
@@ -144,10 +136,10 @@ const uploadProductFiles = async (product) => {
 
     setProductFiles(product, [])
     await loadQuotationFiles()
-    productUploadSuccesses.value = {
-      ...productUploadSuccesses.value,
-      [productId]: files.length === 1 ? 'Archivo cargado correctamente.' : 'Archivos cargados correctamente.',
-    }
+    showProductUploadSuccess(
+      productId,
+      files.length === 1 ? 'Archivo cargado correctamente.' : 'Archivos cargados correctamente.',
+    )
   } catch (error) {
     productUploadErrors.value = {
       ...productUploadErrors.value,
@@ -241,7 +233,7 @@ watch(() => [props.quotationId, props.accessToken, route.params.access_code], ()
 }, { immediate: true })
 
 onBeforeUnmount(() => {
-  Object.values(productImagePreviews.value).flat().forEach((preview) => URL.revokeObjectURL(preview))
+  productUploadSuccessTimers.forEach((timer) => clearTimeout(timer))
 })
 </script>
 
@@ -329,20 +321,7 @@ producto en su caso.
             </v-col>
             <v-col cols="12" md="4">
               <div class="product-images">
-                <div v-if="getProductImages(product).length" class="product-images__grid">
-                  <v-img
-                    v-for="image in getProductImages(product)"
-                    :key="image"
-                    :src="image"
-                    alt="Vista previa del producto"
-                    class="product-image product-image--thumbnail"
-                    cover
-                    tabindex="0"
-                    @click="openImagePreview(image)"
-                    @keydown.enter="openImagePreview(image)"
-                  />
-                </div>
-                <template v-else-if="getQuotationFilesByProduct(product).length">
+                <template v-if="getQuotationFilesByProduct(product).length">
                   <div class="product-images__grid">
                     <v-img
                       v-for="file in getQuotationFilesByProduct(product)"

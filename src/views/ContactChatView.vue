@@ -290,6 +290,7 @@ const loadChat = async () => {
         event_name: 'quotation_opened',
         section_key: '',
         element_key: '',
+        accessToken: token.value,
       }).catch((error) => {
         console.error('No se pudo registrar la apertura de la cotización:', error)
       })
@@ -481,6 +482,7 @@ onBeforeUnmount(() => {
             <infoChatMembers
               v-model="membersDialogOpen"
               :key="infoChatMembersKey"
+              :access-token="token"
               :chat-id="chatId"
               hide-member-link-actions
               :show-activator="false"

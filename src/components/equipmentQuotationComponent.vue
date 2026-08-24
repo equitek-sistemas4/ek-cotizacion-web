@@ -20,6 +20,7 @@ const quotationInfo = ref(null)
 const prospectInfo = ref(null)
 const scopeEquipment = ref([])
 const presentations = ref([])
+const openedEquipmentPanels = ref({})
 
 const baseScopeHeaders = [
   { title: 'Alcance', key: 'alcance' },
@@ -111,6 +112,11 @@ const loadEquipment = async () => {
     })
 
     equipment.value = Array.isArray(response) ? response : []
+    openedEquipmentPanels.value = Object.fromEntries(
+      equipment.value
+        .filter((item) => item.comentario)
+        .map((item) => [item.idcequipos, 0]),
+    )
 
     if (!equipment.value.length) {
       errorMessage.value = 'Esta cotización no tiene equipos registrados.'
@@ -208,16 +214,17 @@ watch(() => [props.quotationId, props.accessToken], () => {
 
                 <v-expansion-panels
                   v-if="item.serietxt || item.descripcc || item.comentario"
+                  v-model="openedEquipmentPanels[item.idcequipos]"
                   variant="accordion"
                 >
+                  <v-expansion-panel v-if="item.comentario" title="Comentarios">
+                    <v-expansion-panel-text>{{ item.comentario }}</v-expansion-panel-text>
+                  </v-expansion-panel>
                   <v-expansion-panel v-if="item.serietxt" title="Descripción de la serie">
                     <v-expansion-panel-text>{{ item.serietxt }}</v-expansion-panel-text>
                   </v-expansion-panel>
                   <v-expansion-panel v-if="item.descripcc" title="Características de construcción">
                     <v-expansion-panel-text>{{ item.descripcc }}</v-expansion-panel-text>
-                  </v-expansion-panel>
-                  <v-expansion-panel v-if="item.comentario" title="Comentarios">
-                    <v-expansion-panel-text>{{ item.comentario }}</v-expansion-panel-text>
                   </v-expansion-panel>
                 </v-expansion-panels>
               </v-col>
@@ -389,6 +396,42 @@ h1 {
 .equipment-scopes-table :deep(th),
 .equipment-scopes-table :deep(td) {
   white-space: nowrap;
+}
+.equipment-scopes-table :deep(th:nth-child(1)),
+.equipment-scopes-table :deep(td:nth-child(1)) {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  background: rgb(var(--v-theme-surface));
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.equipment-scopes-table :deep(th:nth-child(2)),
+.equipment-scopes-table :deep(td:nth-child(2)) {
+  position: sticky;
+  left: 160px;
+  z-index: 2;
+  min-width: 105px;
+  background: rgb(var(--v-theme-surface));
+}
+.equipment-scopes-table :deep(th:nth-child(3)),
+.equipment-scopes-table :deep(td:nth-child(3)) {
+  position: sticky;
+  left: 265px;
+  z-index: 2;
+  min-width: 105px;
+  background: rgb(var(--v-theme-surface));
+}
+.equipment-scopes-table :deep(th:nth-child(4)),
+.equipment-scopes-table :deep(td:nth-child(4)) {
+  position: sticky;
+  left: 370px;
+  z-index: 2;
+  min-width: 110px;
+  background: rgb(var(--v-theme-surface));
 }
 @media (max-width: 500px) {
   .equipment-title {

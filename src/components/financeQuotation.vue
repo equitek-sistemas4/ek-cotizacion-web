@@ -16,10 +16,20 @@ const term = ref(12)
 const downPaymentPercent = ref(15)
 const monthlyPayment = ref(0)
 const expectedMonthlyProduction = ref(0)
-const expectedMonthlyProfit = ref(0)
+const contributionPerUnit = ref(0)
+
+const currencyCode = computed(() => {
+  const currency = String(quotationInfo.value?.moneda_codigo ?? '').trim().toUpperCase()
+
+  return /^[A-Z]{3}$/.test(currency) ? currency : 'MXN'
+})
 
 const formatCurrency = (value) =>
-  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(value) || 0)
+  new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: currencyCode.value,
+    currencyDisplay: 'code',
+  }).format(Number(value) || 0)
 
 const quotationHeading = () => {
   const quotationNumber = quotationInfo.value?.idcoti ?? props.quotationId
@@ -28,22 +38,22 @@ const quotationHeading = () => {
   return company ? `Cotización #${quotationNumber} - ${company}` : `Cotización #${quotationNumber}`
 }
 
-const discountedCost = computed(() => projectCost.value * 0.12)
-const traditionalPayment = computed(() => discountedCost.value / 2)
+const discountPercentage = computed(() => Number(quotationInfo.value?.descuento) || 0)
+const discountAmount = computed(() => projectCost.value * (discountPercentage.value / 100))
+const discountedProjectCost = computed(() => projectCost.value - discountAmount.value)
+const traditionalPayment = computed(() => discountedProjectCost.value / 2)
 const downPayment = computed(() => projectCost.value * (Number(downPaymentPercent.value) / 100))
 const residualValue = computed(() => projectCost.value * 0.01)
 const financedAmount = computed(() => projectCost.value - downPayment.value - residualValue.value)
-const annualExpectedProfit = computed(() => Number(expectedMonthlyProfit.value || 0) * 12)
+const monthlyContribution = computed(() => (
+  Number(expectedMonthlyProduction.value || 0) * Number(contributionPerUnit.value || 0)
+))
+const annualContribution = computed(() => monthlyContribution.value * 12)
 const roiPercentage = computed(() => (
-  projectCost.value > 0 ? (annualExpectedProfit.value / projectCost.value) * 100 : 0
+  projectCost.value > 0 ? (annualContribution.value / projectCost.value) * 100 : 0
 ))
 const recoveryMonths = computed(() => (
-  Number(expectedMonthlyProfit.value) > 0 ? projectCost.value / Number(expectedMonthlyProfit.value) : null
-))
-const profitPerUnit = computed(() => (
-  Number(expectedMonthlyProduction.value) > 0
-    ? Number(expectedMonthlyProfit.value || 0) / Number(expectedMonthlyProduction.value)
-    : 0
+  monthlyContribution.value > 0 ? projectCost.value / monthlyContribution.value : null
 ))
 /*const paymentBalance = computed(
   () => financedAmount.value - Number(monthlyPayment.value || 0) * Number(term.value || 0),
@@ -51,7 +61,9 @@ const profitPerUnit = computed(() => (
 
 const recalculateMonthlyPayment = () => {
   const months = Number(term.value)
-  monthlyPayment.value = months > 0 ? financedAmount.value / months : 0
+  monthlyPayment.value = months > 0
+    ? Number((financedAmount.value / months).toFixed(3))
+    : 0
 }
 
 const loadCost = async () => {
@@ -112,9 +124,9 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
         </span>
       </div>
 
-      <v-card variant="elevated">
+      <v-card v-if="discountPercentage > 0" variant="elevated">
         <v-card-text class="promotion">
-          <h3>12% DE DESCUENTO EN PAGOS DE CONTADO ESQUEMA TRADICIONAL</h3>
+          <h3>{{ discountPercentage }}% DE DESCUENTO EN PAGOS DE CONTADO ESQUEMA TRADICIONAL</h3>
           <br/>
           <v-container>
             <v-row>
@@ -122,7 +134,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
                 <h4>Valor del proyecto</h4>
               </v-col>
               <v-col cols="3">
-                <h4>12% descuento</h4>
+                <h4>{{ discountPercentage }}% descuento</h4>
               </v-col>
               <v-col cols="3">
                 <h4>50% anticipo</h4>
@@ -135,7 +147,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
                 <span>{{ formatCurrency(projectCost) }}</span>
               </v-col>
               <v-col cols="3">
-                <span>{{ formatCurrency(discountedCost) }}</span>
+                <span>-{{ formatCurrency(discountAmount) }}</span>
               </v-col>
               <v-col cols="3">
                 <span>{{ formatCurrency(traditionalPayment) }}</span>
@@ -152,7 +164,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
       <v-card variant="elevated">
         <v-card-text class="finance-content">
           <div class="finance-heading">
-            <h2>ARRENDAMIENTO FINANCIERO</h2>
+            <h2>OPCIÓN DE ARRENDAMIENTO FINANCIERO</h2>
             <p>Hasta 24 meses sin intereses</p>
           </div>
 
@@ -177,6 +189,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               label="Mensualidad"
               min="0"
               prefix="$"
+              readonly
               type="number"
               variant="outlined"
             />
@@ -224,7 +237,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
       <v-card variant="elevated">
         <v-card-text class="finance-content">
           <div class="finance-heading">
-            <h2>RETORNO DE INVERSIÓN (ROI)</h2>
+            <h2>ANÁLISIS RETORNO DE INVERSIÓN (ROI)</h2>
             <p>Captura las estimaciones mensuales para conocer la recuperación de tu inversión.</p>
           </div>
 
@@ -238,8 +251,8 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               variant="outlined"
             />
             <v-text-field
-              v-model.number="expectedMonthlyProfit"
-              label="Utilidad mensual esperada"
+              v-model.number="contributionPerUnit"
+              label="Margen de contribucion / Aportacion por unidad de producto"
               min="0"
               prefix="$"
               type="number"
@@ -253,8 +266,8 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               <strong>{{ formatCurrency(projectCost) }}</strong>
             </div>
             <div>
-              <span>Utilidad anual estimada</span>
-              <strong>{{ formatCurrency(annualExpectedProfit) }}</strong>
+              <span>Aportación mensual estimada</span>
+              <strong>{{ formatCurrency(monthlyContribution) }}</strong>
             </div>
             <div>
               <span>ROI anual estimado</span>
@@ -262,15 +275,16 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
             </div>
             <div>
               <span>Recuperación estimada</span>
-              <strong>{{ recoveryMonths == null ? 'Captura la utilidad mensual' : `${recoveryMonths.toFixed(1)} meses` }}</strong>
+              <strong>{{ recoveryMonths == null ? 'Captura la producción y la aportación por unidad' : `${recoveryMonths.toFixed(1)} meses` }}</strong>
             </div>
             <div>
-              <span>Utilidad estimada por unidad</span>
-              <strong>{{ expectedMonthlyProduction > 0 ? formatCurrency(profitPerUnit) : 'Captura la producción mensual' }}</strong>
+              <span>Aportación anual estimada</span>
+              <strong>{{ formatCurrency(annualContribution) }}</strong>
             </div>
           </div>
         </v-card-text>
       </v-card>
+      <br/>
     </template>
   </section>
 </template>

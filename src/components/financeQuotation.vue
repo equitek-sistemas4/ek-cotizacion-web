@@ -55,6 +55,9 @@ const roiPercentage = computed(() => (
 const recoveryMonths = computed(() => (
   monthlyContribution.value > 0 ? projectCost.value / monthlyContribution.value : null
 ))
+const recoveryYears = computed(() => (
+  recoveryMonths.value == null ? null : recoveryMonths.value / 12
+))
 /*const paymentBalance = computed(
   () => financedAmount.value - Number(monthlyPayment.value || 0) * Number(term.value || 0),
 )*/
@@ -275,8 +278,12 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
             </div>
             <div>
               <span>Recuperación estimada</span>
-              <strong>{{ recoveryMonths == null ? 'Captura la producción y la aportación por unidad' : `${recoveryMonths.toFixed(1)} meses` }}</strong>
+              <strong>{{ recoveryMonths == null ? 'Captura la producción y la aportación por unidad' : `${recoveryMonths.toFixed(1)} meses` }} / {{ recoveryYears == null ? 'Captura la producción y la aportación por unidad' : `${recoveryYears.toFixed(2)} años` }}</strong>
             </div>
+            <!--<div>
+              <span>Recuperación del 100% de la inversión</span>
+              <strong>{{ recoveryYears == null ? 'Captura la producción y la aportación por unidad' : `${recoveryYears.toFixed(2)} años` }}</strong>
+            </div>-->
             <div>
               <span>Aportación anual estimada</span>
               <strong>{{ formatCurrency(annualContribution) }}</strong>

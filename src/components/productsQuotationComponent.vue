@@ -22,6 +22,7 @@ const productUploadErrors = ref({})
 const productUploadSuccesses = ref({})
 const productUploadSuccessTimers = new Map()
 const selectedImage = ref('')
+const selectedFileIsPdf = ref(false)
 const imagePreviewOpen = ref(false)
 const defaultProductImage = 'https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg'
 const presentationHeaders = [
@@ -59,6 +60,14 @@ const getQuotationFileUrl = (file) => {
     return fileUrl
   }
 }
+const isPdfFile = (file) => {
+  const fileName = file?.nombre ?? file?.name ?? file?.archivo ?? file?.url ?? ''
+  const fileType = file?.mime_type ?? file?.mimetype ?? file?.tipo ?? file?.type ?? ''
+
+  return String(fileType).toLowerCase() === 'application/pdf' || /\.pdf(?:$|[?#])/i.test(String(fileName))
+}
+const getOrderedQuotationFilesByProduct = (product) => [...getQuotationFilesByProduct(product)]
+  .sort((first, second) => Number(isPdfFile(first)) - Number(isPdfFile(second)))
 const isProductUploading = (product) => Boolean(productUploads.value[product?.idprod])
 const getProductUploadError = (product) => productUploadErrors.value[product?.idprod] ?? ''
 const getProductUploadSuccess = (product) => productUploadSuccesses.value[product?.idprod] ?? ''
@@ -90,6 +99,13 @@ const setProductFiles = (product, files) => {
 
 const openImagePreview = (imageUrl) => {
   selectedImage.value = imageUrl
+  selectedFileIsPdf.value = false
+  imagePreviewOpen.value = true
+}
+
+const openPdfPreview = (fileUrl) => {
+  selectedImage.value = fileUrl
+  selectedFileIsPdf.value = true
   imagePreviewOpen.value = true
 }
 
@@ -141,9 +157,10 @@ const uploadProductFiles = async (product) => {
       files.length === 1 ? 'Archivo cargado correctamente.' : 'Archivos cargados correctamente.',
     )
   } catch (error) {
+    console.log('error', error)
     productUploadErrors.value = {
       ...productUploadErrors.value,
-      [productId]: error.response?.data?.message || error.message || 'No se pudieron cargar los archivos.',
+      [productId]: error.response?.data?.message || error.message || error.detail || 'No se pudieron cargar los archivos.',
     }
   } finally {
     productUploads.value = { ...productUploads.value, [productId]: false }
@@ -290,12 +307,12 @@ producto en su caso.
                 <div class="product-files__input-row">
                   <v-file-input
                     :model-value="getProductFiles(product)"
-                    accept="image/*,video/*"
+                    accept="image/*,application/pdf,.pdf"
                     chips
                     clearable
                     density="compact"
                     hide-details
-                    label="Agregar fotos o videos"
+                    label="Agregar fotos o PDFs"
                     multiple
                     prepend-icon="mdi-paperclip"
                     variant="outlined"
@@ -321,19 +338,30 @@ producto en su caso.
             </v-col>
             <v-col cols="12" md="4">
               <div class="product-images">
-                <template v-if="getQuotationFilesByProduct(product).length">
+                <template v-if="getOrderedQuotationFilesByProduct(product).length">
                   <div class="product-images__grid">
-                    <v-img
-                      v-for="file in getQuotationFilesByProduct(product)"
-                      :key="file.idarch"
-                      :src="getQuotationFileUrl(file)"
-                      :alt="file.descripcion || 'Archivo del producto'"
-                      class="product-image product-image--thumbnail"
-                      cover
-                      tabindex="0"
-                      @click="openImagePreview(getQuotationFileUrl(file))"
-                      @keydown.enter="openImagePreview(getQuotationFileUrl(file))"
-                    />
+                    <template v-for="file in getOrderedQuotationFilesByProduct(product)" :key="file.idarch">
+                      <button
+                        v-if="isPdfFile(file)"
+                        type="button"
+                        class="product-file-preview product-file-preview--pdf"
+                        :aria-label="`Abrir PDF: ${file.descripcion || 'archivo del producto'}`"
+                        @click="openPdfPreview(getQuotationFileUrl(file))"
+                      >
+                        <v-icon size="40">mdi-file-pdf-box</v-icon>
+                        <span>PDF</span>
+                      </button>
+                      <v-img
+                        v-else
+                        :src="getQuotationFileUrl(file)"
+                        :alt="file.descripcion || 'Archivo del producto'"
+                        class="product-image product-image--thumbnail"
+                        cover
+                        tabindex="0"
+                        @click="openImagePreview(getQuotationFileUrl(file))"
+                        @keydown.enter="openImagePreview(getQuotationFileUrl(file))"
+                      />
+                    </template>
                   </div>
                 </template>
                 <v-img
@@ -352,12 +380,12 @@ producto en su caso.
             <div class="product-files__input-row">
               <v-file-input
                 :model-value="getProductFiles(product)"
-                accept="image/*,video/*"
+                accept="image/*,video/*,application/pdf,.pdf"
                 chips
                 clearable
                 density="compact"
                 hide-details
-                label="Agregar fotos o videos"
+                label="Agregar fotos, videos o PDFs"
                 multiple
                 prepend-icon="mdi-paperclip"
                 variant="outlined"
@@ -390,7 +418,13 @@ producto en su caso.
         <v-card-title class="d-flex justify-end">
           <v-btn icon="mdi-close" variant="text" @click="imagePreviewOpen = false" />
         </v-card-title>
-        <v-img :src="selectedImage" alt="Imagen ampliada" class="product-image--preview" contain />
+        <iframe
+          v-if="selectedFileIsPdf"
+          :src="selectedImage"
+          class="product-pdf--preview"
+          title="Vista previa del PDF"
+        />
+        <v-img v-else :src="selectedImage" alt="Imagen ampliada" class="product-image--preview" contain />
       </v-card>
     </v-dialog>
   </section>
@@ -512,9 +546,38 @@ h1 {
   margin: 0;
   cursor: pointer;
 }
+.product-file-preview {
+  display: grid;
+  width: 100%;
+  min-height: 88px;
+  height: 88px;
+  place-content: center;
+  gap: 2px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
+  background: rgb(var(--v-theme-surface));
+  color: #e53935;
+  cursor: pointer;
+  font: inherit;
+}
+.product-file-preview span {
+  color: rgb(var(--v-theme-textPrimary));
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.product-file-preview:focus-visible {
+  outline: 3px solid rgb(var(--v-theme-primary));
+  outline-offset: 2px;
+}
 .product-image--preview {
   max-height: 75vh;
   margin: 0;
+}
+.product-pdf--preview {
+  display: block;
+  width: 100%;
+  height: 75vh;
+  border: 0;
 }
 .product-image--thumbnail:focus-visible {
   outline: 3px solid rgb(var(--v-theme-primary));

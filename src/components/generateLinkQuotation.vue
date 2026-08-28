@@ -235,7 +235,6 @@
             }
 
             const contactIds = await Promise.all(selectedContacts.map(async (contact) => {
-                console.log('Selected contact:', contact)
                 const companyContactId = contact.idempresa_contacto
 
                 if (!companyContactId) {
@@ -243,7 +242,6 @@
                 }
 
                 const validatedContact = await validateContactCompany(companyContactId)
-                console.log('Validated contact:', validatedContact)
 
                 if (validatedContact?.exists === false) {
                     const createdContact = await createContact({
@@ -265,7 +263,6 @@
                 }
 
                 const existingContactId = validatedContact?.data.id
-                console.log('Existing contact ID:', existingContactId)
                 if (!existingContactId) {
                     throw new Error('No se pudo validar el contacto seleccionado.')
                 }

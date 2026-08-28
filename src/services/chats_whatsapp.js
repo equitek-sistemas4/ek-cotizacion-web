@@ -15,8 +15,10 @@ const getAuthorizationConfig = (accessToken) => {
 }
 
 
-export const getChatsWpp = async () => {
-    const response = await chatsWppApi.get('/chats-whatsapp/list')
+export const getChatsWpp = async ({ user_id } = {}) => {
+    const response = await chatsWppApi.get('/chats-whatsapp/list', {
+        params: { user_id }
+    })
 
     return Array.isArray(response.data?.data) ? response.data.data : []
 }

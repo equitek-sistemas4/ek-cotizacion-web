@@ -574,7 +574,10 @@ const fetchChats = async ({ preferredChatId = null, search = chatSearch.value } 
   chatsError.value = ''
 
   try {
-    const [chatsList, whatsappChatsList] = await Promise.all([getChats({ search }), getChatsWpp()])
+    const [chatsList, whatsappChatsList] = await Promise.all([
+      getChats({ user_id: userId.value, search }),
+      getChatsWpp({ user_id: userId.value }),
+    ])
     const normalizedWhatsappChats = whatsappChatsList
       .map(normalizeWhatsappChat)
       .filter((chat) => {

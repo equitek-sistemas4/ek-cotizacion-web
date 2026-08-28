@@ -174,7 +174,6 @@ const loadEventSummary = async () => {
       : ['Sin aperturas']
     activeOpeningIndex.value = null
 
-    console.log('quotationOpenedSeries', quotationOpenedSeries)
     sectionCounts.value = buildSectionCounts(events)
     latestInteraction.value = events.reduce((latest, event) => {
       if (!event?.created_at || (latest?.created_at && new Date(event.created_at) <= new Date(latest.created_at))) {

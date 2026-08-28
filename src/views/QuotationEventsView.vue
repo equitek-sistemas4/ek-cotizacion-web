@@ -3,8 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { getChats } from '@/services/chats'
 import { getQuotationEvents } from '@/services/quotation_events'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const quotations = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
@@ -90,7 +92,10 @@ const loadQuotations = async () => {
   errorMessage.value = ''
 
   try {
-    const [chats, events] = await Promise.all([getChats(), getQuotationEvents()])
+    const [chats, events] = await Promise.all([
+      getChats({ user_id: authStore.userId }),
+      getQuotationEvents(),
+    ])
     const chatsByQuotation = new Map()
 
     chats.forEach((chat) => {

@@ -15,10 +15,13 @@ const getAuthorizationConfig = (accessToken) => {
 }
 
 
-export const getChats = async ({ search = '' } = {}) => {
+export const getChats = async ({ user_id, search = '' } = {}) => {
   const normalizedSearch = typeof search === 'string' ? search.trim() : ''
   const response = await chatsApi.get('/chats/list', {
-    params: normalizedSearch ? { search: normalizedSearch } : undefined,
+    params: {
+      user_id,
+      ...(normalizedSearch ? { search: normalizedSearch } : {}),
+    },
   })
 
   return Array.isArray(response.data?.data) ? response.data.data : []

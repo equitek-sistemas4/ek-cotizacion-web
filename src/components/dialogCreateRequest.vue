@@ -214,8 +214,9 @@ const handleCreateContact = async () => {
       })
     }
 
+    clearForm()
     emit('contact-created', { chat_id: props.chatId })
-    closeDialog()
+    dialog.value = false
   } catch (error) {
     console.error('Error al crear contacto:', error)
     errorMessage.value =

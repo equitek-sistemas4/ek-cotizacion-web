@@ -65,6 +65,15 @@ const scopeHeaders = () => [
   })),
 ]
 
+const isValueOutOfRange = (valor, minimo, maximo) => {
+  if (valor === null || valor === undefined || valor === '—') return false
+  const numValue = Number(valor)
+  const numMin = Number(minimo)
+  const numMax = Number(maximo)
+  if (isNaN(numValue) || isNaN(numMin) || isNaN(numMax)) return false
+  return numValue < numMin || numValue > numMax
+}
+
 const scopeRows = (item) =>
   (item?.Alcances ?? item?.alcances ?? []).map((scope) => {
     const values = Object.fromEntries(
@@ -74,11 +83,19 @@ const scopeRows = (item) =>
       ]),
     )
 
+    const rawValues = Object.fromEntries(
+      (scope.valores ?? []).map((value) => [
+        `raw_presentation_${value.idpresen}`,
+        value.valor,
+      ]),
+    )
+
     return {
       ...scope,
       minimo: formatValue(scope.minimo),
       maximo: formatValue(scope.maximo),
       ...values,
+      ...rawValues,
     }
   })
 
@@ -256,6 +273,19 @@ watch(() => [props.quotationId, props.accessToken], () => {
                         >
                           <template #item.minimo="{ value }">{{ formatValue(value) }}</template>
                           <template #item.maximo="{ value }">{{ formatValue(value) }}</template>
+                          <template v-for="presentation in presentations" :key="presentation.idpresen" #[`item.presentation_${presentation.idpresen}`]="{ item }">
+                            <span
+                              :class="{
+                                'cell-out-of-range': isValueOutOfRange(
+                                  item[`presentation_${presentation.idpresen}`],
+                                  item.minimo,
+                                  item.maximo,
+                                ),
+                              }"
+                            >
+                              {{ item[`presentation_${presentation.idpresen}`] }}
+                            </span>
+                          </template>
                         </v-data-table>
                       </div>
                     </v-expansion-panel-text>
@@ -408,6 +438,11 @@ h1 {
   background: rgb(var(--v-theme-surface));
   overflow-wrap: anywhere;
   white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .equipment-scopes-table :deep(th:nth-child(2)),
 .equipment-scopes-table :deep(td:nth-child(2)) {
@@ -432,6 +467,14 @@ h1 {
   z-index: 2;
   min-width: 110px;
   background: rgb(var(--v-theme-surface));
+}
+.cell-out-of-range {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  background-color: #ffeb3b;
+  border-radius: 4px;
+  font-weight: 600;
 }
 @media (max-width: 500px) {
   .equipment-title {

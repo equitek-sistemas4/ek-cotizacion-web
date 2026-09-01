@@ -35,12 +35,10 @@ const toNumber = (value) => {
 }
 
 const quotationTotals = computed(() => {
-  const subtotal = equipment.value.reduce(
-    (total, item) => total + toNumber(item.costoactual ?? item.costo),
-    0,
-  )
+  const truncateToTwoDecimals = (value) => Math.trunc(value * 100) / 100
+  const subtotal = truncateToTwoDecimals(toNumber(quotationInfo.value?.costo ?? 0) - toNumber(quotationInfo.value?.extras ?? 0))
   const discount = subtotal * discountRate
-  const extras = equipment.value.reduce(
+  const extras = toNumber(quotationInfo.value?.extras) || equipment.value.reduce(
     (total, item) => total + toNumber(item.extras ?? item.extra),
     0,
   )
@@ -48,11 +46,11 @@ const quotationTotals = computed(() => {
   const tax = beforeTax * taxRate
 
   return {
-    subtotal,
-    discount,
-    extras,
-    tax,
-    total: beforeTax + tax,
+    subtotal: truncateToTwoDecimals(subtotal),
+    discount: truncateToTwoDecimals(discount),
+    extras: truncateToTwoDecimals(extras),
+    tax: truncateToTwoDecimals(tax),
+    total: truncateToTwoDecimals(beforeTax + tax),
   }
 })
 
@@ -191,7 +189,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
           <template #item.costo="{ item }">
             <span class="equipment-cost">
               <strong>
-                {{ formatCurrency(item.costoactual ?? item.costo) }}
+                ${{ item.costoactual ?? item.costo }} {{ currencyCode }}
               </strong>
             </span>
           </template>
@@ -203,23 +201,23 @@ watch(() => [props.quotationId, props.accessToken], () => {
           <tbody>
             <tr>
               <td>Subtotal</td>
-              <td>{{ formatCurrency(quotationTotals.subtotal) }}</td>
+              <td>${{ quotationTotals.subtotal }} {{ currencyCode }}</td>
             </tr>
             <tr>
-              <td>Descuento (20.0000%)</td>
-              <td>-{{ formatCurrency(quotationTotals.discount) }}</td>
+              <td>Descuento (20%)</td>
+              <td>-${{ quotationTotals.discount }} {{ currencyCode }}</td>
             </tr>
             <tr>
               <td>Extras</td>
-              <td>{{ formatCurrency(quotationTotals.extras) }}</td>
+              <td>${{ quotationTotals.extras }} {{ currencyCode }}</td>
             </tr>
             <tr>
               <td>IVA (16%)</td>
-              <td>{{ formatCurrency(quotationTotals.tax) }}</td>
+              <td>${{ quotationTotals.tax }} {{ currencyCode }}</td>
             </tr>
             <tr class="quotation-total-row">
               <td>Total</td>
-              <td>{{ formatCurrency(quotationTotals.total) }}</td>
+              <td>${{ quotationTotals.total }} {{ currencyCode }}</td>
             </tr>
           </tbody>
         </v-table>

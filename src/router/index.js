@@ -91,6 +91,11 @@ const router = createRouter({
         hideSidebar: true,
       },
     },
+    {
+      path: '/quotation/:chatId',
+      name: 'UsersQuotation',
+      component: () => import('../views/UsersQuotationView.vue'),
+    },
   ],
 })
 

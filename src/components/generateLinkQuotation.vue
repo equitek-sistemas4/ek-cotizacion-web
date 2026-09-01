@@ -194,7 +194,9 @@
     }
 
     const clearForm = () => {
+        quotationId.value = null
         chatName.value = ''
+        chatDescription.value = ''
         contactId.value = null
     }
 
@@ -282,6 +284,7 @@
                 title: 'Chat creado',
                 message: 'El enlace de cotizacion se creo correctamente.',
             })
+            clearForm()
             emit('created', newChat.value)
             dialog.value = false
         } catch (error) {

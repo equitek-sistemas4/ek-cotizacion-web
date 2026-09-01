@@ -89,7 +89,7 @@ const selectTab = (tab) => {
         </v-tab>
         <v-tab value="precios" @click="registerSectionOpen('precios')">
           <v-icon class="tab-icon" icon="mdi-tag"></v-icon>
-          Precios Condiciones y Garantias
+          Precios, Condiciones y Garantias
         </v-tab>
         <!--<v-tab value="alcances">
           <v-icon class="tab-icon" icon="mdi-target"></v-icon>

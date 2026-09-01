@@ -38,25 +38,27 @@ const quotationHeading = () => {
   return company ? `Cotización #${quotationNumber} - ${company}` : `Cotización #${quotationNumber}`
 }
 
+const truncateToTwoDecimals = (value) => Math.trunc(value * 100) / 100
+
 const discountPercentage = computed(() => Number(quotationInfo.value?.descuento) || 0)
-const discountAmount = computed(() => projectCost.value * (discountPercentage.value / 100))
-const discountedProjectCost = computed(() => projectCost.value - discountAmount.value)
-const traditionalPayment = computed(() => discountedProjectCost.value / 2)
-const downPayment = computed(() => projectCost.value * (Number(downPaymentPercent.value) / 100))
-const residualValue = computed(() => projectCost.value * 0.01)
-const financedAmount = computed(() => projectCost.value - downPayment.value - residualValue.value)
-const monthlyContribution = computed(() => (
+const discountAmount = computed(() => truncateToTwoDecimals(projectCost.value * (discountPercentage.value / 100)))
+const discountedProjectCost = computed(() => truncateToTwoDecimals(projectCost.value - discountAmount.value))
+const traditionalPayment = computed(() => truncateToTwoDecimals(discountedProjectCost.value / 2))
+const downPayment = computed(() => truncateToTwoDecimals(projectCost.value * (Number(downPaymentPercent.value) / 100)))
+const residualValue = computed(() => truncateToTwoDecimals(projectCost.value * 0.01))
+const financedAmount = computed(() => truncateToTwoDecimals(projectCost.value - downPayment.value - residualValue.value))
+const monthlyContribution = computed(() => truncateToTwoDecimals(
   Number(expectedMonthlyProduction.value || 0) * Number(contributionPerUnit.value || 0)
 ))
-const annualContribution = computed(() => monthlyContribution.value * 12)
+const annualContribution = computed(() => truncateToTwoDecimals(monthlyContribution.value * 12))
 const roiPercentage = computed(() => (
   projectCost.value > 0 ? (annualContribution.value / projectCost.value) * 100 : 0
 ))
 const recoveryMonths = computed(() => (
-  monthlyContribution.value > 0 ? projectCost.value / monthlyContribution.value : null
+  monthlyContribution.value > 0 ? truncateToTwoDecimals(projectCost.value / monthlyContribution.value) : null
 ))
 const recoveryYears = computed(() => (
-  recoveryMonths.value == null ? null : recoveryMonths.value / 12
+  recoveryMonths.value == null ? null : truncateToTwoDecimals(recoveryMonths.value / 12)
 ))
 /*const paymentBalance = computed(
   () => financedAmount.value - Number(monthlyPayment.value || 0) * Number(term.value || 0),
@@ -65,7 +67,7 @@ const recoveryYears = computed(() => (
 const recalculateMonthlyPayment = () => {
   const months = Number(term.value)
   monthlyPayment.value = months > 0
-    ? Number((financedAmount.value / months).toFixed(3))
+    ? truncateToTwoDecimals(financedAmount.value / months)
     : 0
 }
 
@@ -85,7 +87,7 @@ const loadCost = async () => {
     const response = await getQuotationInfo(props.quotationId, { accessToken: props.accessToken })
     quotationInfo.value = response?.quotation_info ?? null
     prospectInfo.value = response?.quotation_prospect_info ?? null
-    projectCost.value = Number(response?.quotation_info?.costo ?? 0)
+    projectCost.value = truncateToTwoDecimals(Number(response?.quotation_info?.costo ?? 0) - Number(response?.quotation_info?.extras ?? 0))
 
     if (!projectCost.value) {
       errorMessage.value = 'No fue posible obtener el valor del proyecto.'
@@ -147,16 +149,16 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               </v-col>
               <v-divider></v-divider>
               <v-col cols="3">
-                <span>{{ formatCurrency(projectCost) }}</span>
+                <span>${{ projectCost }} {{ currencyCode }}</span>
               </v-col>
               <v-col cols="3">
-                <span>-{{ formatCurrency(discountAmount) }}</span>
+                <span>-${{ discountAmount }} {{ currencyCode }}</span>
               </v-col>
               <v-col cols="3">
-                <span>{{ formatCurrency(traditionalPayment) }}</span>
+                <span>${{ traditionalPayment }} {{ currencyCode }}</span>
               </v-col>
               <v-col cols="3">
-                <span>{{ formatCurrency(traditionalPayment) }}</span>
+                <span>${{ traditionalPayment }} {{ currencyCode }}</span>
               </v-col>
             </v-row>
           </v-container>
@@ -217,18 +219,18 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
                 {{ term }} meses
               </v-col>
               <v-col cols="3">
-                {{ Number(downPaymentPercent) || 0 }}% · {{ formatCurrency(downPayment) }}
+                {{ Number(downPaymentPercent) || 0 }}% · ${{ downPayment }} {{ currencyCode }}
               </v-col>
               <v-col cols="3">
-                {{ formatCurrency(monthlyPayment) }}
+                ${{ monthlyPayment }} {{ currencyCode }}
               </v-col>
               <v-col cols="3">
-                {{ formatCurrency(residualValue) }}
+                ${{ residualValue }} {{ currencyCode }}
               </v-col>
             </v-row>
           </v-container>
 
-          <p class="finance-note">Montos expresados antes de IVA.</p>
+          <p class="finance-note"><strong>Montos expresados antes de IVA.</strong></p>
           <p class="finance-disclaimer">
             Este cálculo es demostrativo y aproximado. Si desea aplicar a alguno de los tipos de
             financiamiento, comuníquelo a su asesor comercial.
@@ -258,37 +260,45 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               label="Margen de contribucion / Aportacion por unidad de producto"
               min="0"
               prefix="$"
+              :suffix="currencyCode"
               type="number"
               variant="outlined"
             />
           </div>
 
-          <div class="roi-summary">
-            <div>
-              <span>Inversión total</span>
-              <strong>{{ formatCurrency(projectCost) }}</strong>
-            </div>
-            <div>
-              <span>Aportación mensual estimada</span>
-              <strong>{{ formatCurrency(monthlyContribution) }}</strong>
-            </div>
-            <div>
-              <span>ROI anual estimado</span>
-              <strong>{{ roiPercentage.toFixed(2) }}%</strong>
-            </div>
-            <div>
-              <span>Recuperación estimada</span>
-              <strong>{{ recoveryMonths == null ? 'Captura la producción y la aportación por unidad' : `${recoveryMonths.toFixed(1)} meses` }} / {{ recoveryYears == null ? 'Captura la producción y la aportación por unidad' : `${recoveryYears.toFixed(2)} años` }}</strong>
-            </div>
+
+            <v-row>
+              <v-col cols="6">
+                <div>
+                  <span>Inversión total: <strong>${{ projectCost }} {{ currencyCode }}</strong></span>
+                </div>
+              </v-col>
+              <v-col cols="6">
+                <div>
+                  <span>ROI anual estimado: <strong>{{ roiPercentage.toFixed(2) }}%</strong></span>
+                </div>
+              </v-col>
+              <v-col cols="4">
+                <div>
+                  <span>Margen de contribución mensual: <strong>${{ monthlyContribution }} {{ currencyCode }}</strong></span>
+                </div>
+              </v-col>
+              <v-col cols="4">
+                <div>
+                  <span>Margen de contribución anual: <strong>${{ annualContribution }} {{ currencyCode }}</strong></span>
+                </div>
+              </v-col>
+              <v-col cols="4">
+                <div>
+                  <span>Recuperación estimada: <strong>{{ recoveryMonths == null ? 'Captura la producción y la aportación por unidad' : `${recoveryMonths.toFixed(1)} meses` }} / {{ recoveryYears == null ? 'Captura la producción y la aportación por unidad' : `${recoveryYears.toFixed(2)} años` }}</strong></span>
+                </div>
+              </v-col>
+            </v-row>
             <!--<div>
               <span>Recuperación del 100% de la inversión</span>
               <strong>{{ recoveryYears == null ? 'Captura la producción y la aportación por unidad' : `${recoveryYears.toFixed(2)} años` }}</strong>
             </div>-->
-            <div>
-              <span>Aportación anual estimada</span>
-              <strong>{{ formatCurrency(annualContribution) }}</strong>
-            </div>
-          </div>
+
         </v-card-text>
       </v-card>
       <br/>

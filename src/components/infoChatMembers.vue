@@ -1,7 +1,10 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { deleteChat, getChatById, deleteMemberToChat } from '@/services/chats'
 import { sendTemplateMeta } from '@/services/whatsapp'
+
+const router = useRouter()
 
 const props = defineProps({
   showActivator: {
@@ -234,6 +237,14 @@ const copyMemberUrl = async (member) => {
   }, 1400)
 }
 
+const viewQuotation = () => {
+  if (!props.chatId) {
+    return
+  }
+
+  router.push({ name: 'UsersQuotation', params: { chatId: props.chatId } })
+}
+
 watch(() => props.chatId, loadChat, { immediate: true })
 </script>
 
@@ -282,6 +293,19 @@ watch(() => props.chatId, loadChat, { immediate: true })
                       </div>
 
                       <v-spacer />
+
+                      <v-tooltip text="Ver cotización">
+                        <template #activator="{ props: tooltipProps }">
+                          <v-btn
+                            aria-label="Ver cotización"
+                            color="primary"
+                            icon="mdi-eye"
+                            variant="text"
+                            v-bind="tooltipProps"
+                            @click="viewQuotation"
+                          />
+                        </template>
+                      </v-tooltip>
 
                       <v-tooltip v-if="showDeleteChat" text="Eliminar chat">
                         <template #activator="{ props: tooltipProps }">

@@ -47,6 +47,7 @@ const traditionalPayment = computed(() => truncateToTwoDecimals(discountedProjec
 const downPayment = computed(() => truncateToTwoDecimals(projectCost.value * (Number(downPaymentPercent.value) / 100)))
 const residualValue = computed(() => truncateToTwoDecimals(projectCost.value * 0.01))
 const financedAmount = computed(() => truncateToTwoDecimals(projectCost.value - downPayment.value - residualValue.value))
+const monthlyReturnOnInvestment = computed(() => truncateToTwoDecimals(monthlyContribution.value - monthlyPayment.value))
 const monthlyContribution = computed(() => truncateToTwoDecimals(
   Number(expectedMonthlyProduction.value || 0) * Number(contributionPerUnit.value || 0)
 ))
@@ -257,8 +258,10 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
             />
             <v-text-field
               v-model.number="contributionPerUnit"
+              hint="Cantidad que se dispone del precio total por unidad del producto para pago de inversión"
               label="Margen de contribucion / Aportacion por unidad de producto"
               min="0"
+              persistent-hint
               prefix="$"
               :suffix="currencyCode"
               type="number"
@@ -268,29 +271,46 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
 
 
             <v-row>
+              <v-col cols="4">
+                <div>
+                  <h3>Inversión total: <strong>${{ projectCost }} {{ currencyCode }}</strong></h3>
+                </div>
+              </v-col>
+              <v-col cols="4">
+                <div>
+                  <h3>ROI anual estimado: <strong>{{ roiPercentage.toFixed(2) }}%</strong></h3>
+                </div>
+              </v-col>
+              <v-col cols="4">
+                <div>
+                  <h3>Recuperación estimada: <strong>{{ recoveryMonths == null ? '' : `${recoveryMonths.toFixed(1)} meses` }} / {{ recoveryYears == null ? '' : `${recoveryYears.toFixed(2)} años` }}</strong></h3>
+                </div>
+              </v-col>
               <v-col cols="6">
                 <div>
-                  <span>Inversión total: <strong>${{ projectCost }} {{ currencyCode }}</strong></span>
+                  <h3>Margen de contribución mensual: <strong>${{ monthlyContribution }} {{ currencyCode }}</strong></h3>
                 </div>
               </v-col>
               <v-col cols="6">
                 <div>
-                  <span>ROI anual estimado: <strong>{{ roiPercentage.toFixed(2) }}%</strong></span>
+                  <h3>Margen de contribución anual: <strong>${{ annualContribution }} {{ currencyCode }}</strong></h3>
                 </div>
               </v-col>
-              <v-col cols="4">
+              <v-col></v-col>
+              <v-divider></v-divider>
+              <v-col cols="12">
                 <div>
-                  <span>Margen de contribución mensual: <strong>${{ monthlyContribution }} {{ currencyCode }}</strong></span>
-                </div>
-              </v-col>
-              <v-col cols="4">
-                <div>
-                  <span>Margen de contribución anual: <strong>${{ annualContribution }} {{ currencyCode }}</strong></span>
-                </div>
-              </v-col>
-              <v-col cols="4">
-                <div>
-                  <span>Recuperación estimada: <strong>{{ recoveryMonths == null ? 'Captura la producción y la aportación por unidad' : `${recoveryMonths.toFixed(1)} meses` }} / {{ recoveryYears == null ? 'Captura la producción y la aportación por unidad' : `${recoveryYears.toFixed(2)} años` }}</strong></span>
+                  <h3>
+                    Contribución mensual contra arrendamiento mensual:
+                    <strong
+                      :class="{
+                        'monthly-roi-negative': monthlyReturnOnInvestment < 0,
+                        'monthly-roi-positive': monthlyReturnOnInvestment > 0,
+                      }"
+                    >
+                      ${{ monthlyReturnOnInvestment }} {{ currencyCode }}
+                    </strong>
+                  </h3>
                 </div>
               </v-col>
             </v-row>
@@ -330,6 +350,8 @@ h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1
 .roi-summary > div { display: grid; gap: 4px; padding: 14px; border-radius: 8px; background: rgb(var(--v-theme-surfaceVariant)); }
 .roi-summary span { color: rgb(var(--v-theme-textMuted)); font-size: .85rem; }
 .roi-summary strong { color: rgb(var(--v-theme-textPrimary)); font-size: 1.05rem; }
+.monthly-roi-negative { color: rgb(var(--v-theme-error)); }
+.monthly-roi-positive { color: rgb(var(--v-theme-success)); }
 .finance-note, .finance-disclaimer { margin: 10px 0 0; text-align: center; color: rgb(var(--v-theme-textMuted)); font-size: .9rem; }
 .finance-disclaimer { line-height: 1.5; }
 .finance-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }

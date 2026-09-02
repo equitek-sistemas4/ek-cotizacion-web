@@ -42,6 +42,8 @@ let messageSearchRequestId = 0
 
 const selectedChat = computed(() => chats.value.find((chat) => chat.id === selectedChatId.value))
 const loggedUserName = computed(() => authStore.user?.name || authStore.user?.email || 'Usuario')
+const loggedTypeUser = computed(() => authStore.user?.idtipo_usuario)
+const shouldOmitUserIdFromChats = computed(() => [1, 17].includes(Number(loggedTypeUser.value)))
 const matchingMessages = computed(() =>
   (selectedChat.value?.messages ?? []).filter((messageItem) => isMatchingMessage(messageItem.id)),
 )
@@ -574,9 +576,17 @@ const fetchChats = async ({ preferredChatId = null, search = chatSearch.value } 
   chatsError.value = ''
 
   try {
+    const chatsParams = { search }
+    const whatsappChatsParams = {}
+
+    if (!shouldOmitUserIdFromChats.value) {
+      chatsParams.user_id = userId.value
+      whatsappChatsParams.user_id = userId.value
+    }
+
     const [chatsList, whatsappChatsList] = await Promise.all([
-      getChats({ user_id: userId.value, search }),
-      getChatsWpp({ user_id: userId.value }),
+      getChats(chatsParams),
+      getChatsWpp(whatsappChatsParams),
     ])
     const normalizedWhatsappChats = whatsappChatsList
       .map(normalizeWhatsappChat)
@@ -624,6 +634,14 @@ const handleChatCreated = async (createdChat) => {
 
 const handleChatDeleted = async () => {
   await fetchChats()
+}
+
+const viewSelectedChatQuotation = () => {
+  if (!selectedChatId.value) {
+    return
+  }
+
+  router.push({ name: 'UsersQuotation', params: { chatId: selectedChatId.value } })
 }
 
 const handleChatSearch = (search) => {
@@ -952,6 +970,16 @@ onBeforeUnmount(closeChatWebSocket)
             />
             <!--<v-btn color="primary" icon="mdi-phone-outline" size="small" variant="text" />-->
             <!--<v-btn color="primary" icon="mdi-account-multiple-plus" size="small" variant="text" />-->
+            <v-btn
+              aria-label="Ver cotización"
+              class="text-none font-weight-regular"
+              color="white"
+              icon="mdi-file"
+              title="Ver cotización"
+              single-line
+              variant="outlined"
+              @click="viewSelectedChatQuotation"
+            />
             <dialogAddMember
               :chat-id="selectedChatId"
               :quotation-id="selectedChat.quotation_id"

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { getQuotationConditions, getQuotationEquipment, getQuotationInfo } from '@/services/quotations'
+import { getQuotationConditions, getQuotationEquipment, getQuotationExtras, getQuotationInfo } from '@/services/quotations'
 
 const props = defineProps({
   quotationId: { type: [Number, String], default: null },
@@ -10,16 +10,28 @@ const props = defineProps({
 const loading = ref(false)
 const errorMessage = ref('')
 const equipment = ref([])
+const extras = ref([])
+const extrasError = ref('')
 const conditions = ref([])
 const quotationInfo = ref(null)
 const prospectInfo = ref(null)
-const discountRate = 0.2
 const taxRate = 0.16
-const equipmentHeaders = [
-  { title: 'Familia', key: 'familia' },
-  { title: 'Modelo', key: 'modelo' },
+const equipmentHeaders = computed(() => {
+  const headers = [
+    { title: 'Modelo', key: 'modelo' },
+    { title: 'Descripción', key: 'descripcion' },
+    { title: 'Costo', key: 'costo', align: 'end' },
+  ]
+
+  if (equipment.value.some((item) => Number(item.mejora) > 0)) {
+    headers.push({ title: 'Mejora', key: 'mejora' })
+  }
+
+  return headers
+})
+const extrasHeaders = [
   { title: 'Descripción', key: 'descripcion' },
-  { title: 'Costo', key: 'costo', align: 'end' },
+  { title: 'Costo', key: 'costoe', align: 'end' },
 ]
 
 const currencyCode = computed(() => {
@@ -34,10 +46,12 @@ const toNumber = (value) => {
   return Number.isFinite(parsedValue) ? parsedValue : 0
 }
 
+const discountRate = computed(() => toNumber(quotationInfo.value?.descuento) / 100)
+
 const quotationTotals = computed(() => {
   const truncateToTwoDecimals = (value) => Math.trunc(value * 100) / 100
   const subtotal = truncateToTwoDecimals(toNumber(quotationInfo.value?.costo ?? 0) - toNumber(quotationInfo.value?.extras ?? 0))
-  const discount = subtotal * discountRate
+  const discount = subtotal * discountRate.value
   const extras = toNumber(quotationInfo.value?.extras) || equipment.value.reduce(
     (total, item) => total + toNumber(item.extras ?? item.extra),
     0,
@@ -102,6 +116,31 @@ const loadEquipment = async () => {
   }
 }
 
+const loadExtras = async () => {
+  if (!props.quotationId) {
+    extras.value = []
+    extrasError.value = ''
+    return
+  }
+
+  extrasError.value = ''
+
+  try {
+    const response = await getQuotationExtras(props.quotationId, {
+      accessToken: props.accessToken,
+    })
+
+    extras.value = Array.isArray(response)
+      ? response
+      : Array.isArray(response?.extras)
+        ? response.extras
+        : []
+  } catch (error) {
+    extras.value = []
+    extrasError.value = error.message || 'No se pudieron obtener los extras de la cotización.'
+  }
+}
+
 const quotationHeading = () => {
   const quotationNumber = quotationInfo.value?.idcoti ?? props.quotationId
   const company = quotationInfo.value?.empresa ?? prospectInfo.value?.empresa
@@ -148,6 +187,7 @@ const loadQuotationInfo = async () => {
 
 watch(() => [props.quotationId, props.accessToken], () => {
   loadEquipment()
+  loadExtras()
   loadConditions()
   loadQuotationInfo()
 }, { immediate: true })
@@ -179,9 +219,6 @@ watch(() => [props.quotationId, props.accessToken], () => {
           density="comfortable"
           hide-default-footer
         >
-          <template #item.familia="{ value }">
-            {{ value || '—' }}
-          </template>
           <template #item.modelo="{ value }">{{ value || '—' }}</template>
           <template #item.descripcion="{ value }">
             <span :title="value">{{ truncateText(value) || '—' }}</span>
@@ -192,6 +229,31 @@ watch(() => [props.quotationId, props.accessToken], () => {
                 ${{ item.costoactual ?? item.costo }} {{ currencyCode }}
               </strong>
             </span>
+          </template>
+          <template #item.mejora="{ value }">
+            <span v-if="Number(value) > 0">${{ value }} {{ currencyCode }}</span>
+          </template>
+        </v-data-table>
+      </div>
+
+      <div v-if="extras.length" class="equipment-list">
+        <h3>Extras cotizados</h3>
+        <v-alert v-if="extrasError" type="error" variant="tonal">
+          {{ extrasError }}
+        </v-alert>
+        <v-data-table
+          v-else
+          :headers="extrasHeaders"
+          :items="extras"
+          :items-per-page="-1"
+          class="equipment-table"
+          density="comfortable"
+          hide-default-footer
+          no-data-text="Esta cotización no tiene extras registrados."
+        >
+          <template #item.descripcion="{ value }">{{ value || '—' }}</template>
+          <template #item.costoe="{ value }">
+            <span class="equipment-cost"><strong>${{ value ?? 0 }} {{ currencyCode }}</strong></span>
           </template>
         </v-data-table>
       </div>
@@ -204,7 +266,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
               <td>${{ quotationTotals.subtotal }} {{ currencyCode }}</td>
             </tr>
             <tr>
-              <td>Descuento (20%)</td>
+              <td>Descuento ({{ quotationInfo?.descuento ?? 0 }}%)</td>
               <td>-${{ quotationTotals.discount }} {{ currencyCode }}</td>
             </tr>
             <tr>

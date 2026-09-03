@@ -92,6 +92,14 @@ const router = createRouter({
       },
     },
     {
+      path: '/quotation-integration/:chatId',
+      name: 'quotation-integration',
+      component: () => import('../views/QuotationIntegrationView.vue'),
+      meta: {
+        hideSidebar: true,
+      },
+    },
+    {
       path: '/quotation/:chatId',
       name: 'UsersQuotation',
       component: () => import('../views/UsersQuotationView.vue'),

@@ -47,7 +47,20 @@ const handleSubmit = async () => {
       accessToken,
       tokenType,
     })
-    await router.push('/chat')
+
+    // Revisar si hay una integración pendiente
+    let redirectPath = '/chat'
+    try {
+      const pendingChatId = sessionStorage.getItem('pendingIntegrationChatId')
+      if (pendingChatId) {
+        redirectPath = `/quotation-integration/${pendingChatId}`
+        sessionStorage.removeItem('pendingIntegrationChatId')
+      }
+    } catch (error) {
+      console.error('Error reading pending integration:', error)
+    }
+
+    await router.push(redirectPath)
   } catch (error) {
     loginError.value =
       error.response?.data?.message || error.message || 'No se pudo iniciar sesion.'

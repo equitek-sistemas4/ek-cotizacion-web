@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { getChatById, getChatMessages, getChats, searchChatsMessages, sendChatMessage } from '@/services/chats'
 import { getChatsWpp } from '@/services/chats_whatsapp'
 import { getChatMessagesWpp, sendWhatsappMessage } from '@/services/whatsapp'
@@ -10,6 +10,7 @@ import generateLinkQuotation from '@/components/generateLinkQuotation.vue'
 import infoChatMembers from '@/components/infoChatMembers.vue'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const message = ref('')
 const chatSearch = ref('')
@@ -797,7 +798,30 @@ onMounted(async () => {
   }
 
   userId.value = authStore.userId
-  fetchChats()
+
+  // Obtener el chatId preferido de diferentes fuentes
+  let preferredChatId = route.query.selected_chat_id
+
+  // Si no hay en query params, revisar si hay una integración pendiente en sessionStorage
+  if (!preferredChatId) {
+    try {
+      const pendingChatId = sessionStorage.getItem('pendingIntegrationChatId')
+      if (pendingChatId) {
+        preferredChatId = pendingChatId
+        sessionStorage.removeItem('pendingIntegrationChatId')
+      }
+    } catch (error) {
+      console.error('Error reading pending integration:', error)
+    }
+  }
+
+  // Cargar chats con el chatId preferido si existe
+  await fetchChats({ preferredChatId })
+
+  // Limpiar el query param si es que existía
+  if (route.query.selected_chat_id) {
+    await router.replace({ name: 'chat' })
+  }
 })
 
 onBeforeUnmount(closeChatWebSocket)

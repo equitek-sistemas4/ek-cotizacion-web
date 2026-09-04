@@ -143,3 +143,23 @@ export const uploadFileQuotationProduct = async ({
 
   return response.data?.data ?? response.data
 }
+
+export const uploadFileQuotationUser = async ({
+  quotation_id,
+  user_id,
+  fk_idprod,
+  file,
+}) => {
+  const body = new FormData()
+  body.append('quotation_id', quotation_id)
+  body.append('user_id', user_id)
+  body.append('fk_idprod', fk_idprod)
+  body.append('file', file)
+
+  const response = await quotationsApi.post(
+    '/quotations/upload-file',
+    body,
+  )
+
+  return response.data?.data ?? response.data
+}

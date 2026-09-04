@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getChatById } from '@/services/chats'
 import { useAuthStore } from '@/stores/auth'
@@ -7,8 +7,12 @@ import infoClientQuotation from '@/components/infoClientQuotation.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const props = defineProps({
+  chatId: { type: [Number, String], default: null },
+  embedded: { type: Boolean, default: false },
+})
 
-const chatId = ref(null)
+const loadedChatId = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
 const chat = ref(null)
@@ -16,6 +20,7 @@ const quotationId = ref(null)
 const token = ref('')
 const contactId = ref(null)
 const userId = ref(null)
+const resolvedChatId = computed(() => props.chatId ?? route.params.chatId)
 
 const chatTitle = computed(() => chat.value?.name + (chat.value?.quotation_id ? ` #${chat.value.quotation_id}` : '') || 'Cotización')
 
@@ -25,9 +30,9 @@ const loadQuotation = async () => {
 
   try {
     // Obtener el chatId de los parámetros de la ruta
-    chatId.value = route.params.chatId
+    loadedChatId.value = resolvedChatId.value
     
-    if (!chatId.value) {
+    if (!loadedChatId.value) {
       throw new Error('No se pudo identificar la cotización.')
     }
 
@@ -36,7 +41,7 @@ const loadQuotation = async () => {
     userId.value = authStore.userId
 
     // Cargar la información del chat/cotización
-    const chatDetail = await getChatById(chatId.value, { accessToken: token.value })
+    const chatDetail = await getChatById(loadedChatId.value, { accessToken: token.value })
     
     chat.value = chatDetail
     quotationId.value = chatDetail?.quotation_id ?? null
@@ -57,13 +62,15 @@ const loadQuotation = async () => {
   }
 }
 
-onMounted(() => {
-  loadQuotation()
-})
+watch(resolvedChatId, loadQuotation, { immediate: true })
 </script>
 
 <template>
-  <v-container class="users-quotation-view" fluid>
+  <v-container
+    class="users-quotation-view"
+    :class="{ 'users-quotation-view--embedded': embedded }"
+    fluid
+  >
     <div v-if="loading" class="quotation-state">
       <v-progress-circular color="primary" indeterminate size="32" />
       <span>Cargando cotización...</span>
@@ -95,6 +102,12 @@ onMounted(() => {
   min-height: 100dvh;
   padding: 24px;
   background: rgb(var(--v-theme-appBackground));
+}
+
+.users-quotation-view--embedded {
+  min-height: 100%;
+  padding: 0;
+  background: transparent;
 }
 
 .quotation-state {

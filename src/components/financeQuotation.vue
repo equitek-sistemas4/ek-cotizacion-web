@@ -24,12 +24,10 @@ const currencyCode = computed(() => {
   return /^[A-Z]{3}$/.test(currency) ? currency : 'MXN'
 })
 
-const formatCurrency = (value) =>
-  new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: currencyCode.value,
-    currencyDisplay: 'code',
-  }).format(Number(value) || 0)
+const formatAmount = (value) => new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+}).format(Number(value) || 0)
 
 const quotationHeading = () => {
   const quotationNumber = quotationInfo.value?.idcoti ?? props.quotationId
@@ -150,16 +148,16 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               </v-col>
               <v-divider></v-divider>
               <v-col cols="3">
-                <span>${{ projectCost }} {{ currencyCode }}</span>
+                <span>${{ formatAmount(projectCost) }} {{ currencyCode }}</span>
               </v-col>
               <v-col cols="3">
-                <span>-${{ discountAmount }} {{ currencyCode }}</span>
+                <span>-${{ formatAmount(discountAmount) }} {{ currencyCode }}</span>
               </v-col>
               <v-col cols="3">
-                <span>${{ traditionalPayment }} {{ currencyCode }}</span>
+                <span>${{ formatAmount(traditionalPayment) }} {{ currencyCode }}</span>
               </v-col>
               <v-col cols="3">
-                <span>${{ traditionalPayment }} {{ currencyCode }}</span>
+                <span>${{ formatAmount(traditionalPayment) }} {{ currencyCode }}</span>
               </v-col>
             </v-row>
           </v-container>
@@ -191,12 +189,12 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               variant="outlined"
             />
             <v-text-field
-              v-model.number="monthlyPayment"
+              :model-value="formatAmount(monthlyPayment)"
               label="Mensualidad"
               min="0"
               prefix="$"
               readonly
-              type="number"
+              type="text"
               variant="outlined"
             />
           </div>
@@ -220,13 +218,13 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
                 {{ term }} meses
               </v-col>
               <v-col cols="3">
-                {{ Number(downPaymentPercent) || 0 }}% · ${{ downPayment }} {{ currencyCode }}
+                {{ Number(downPaymentPercent) || 0 }}% · ${{ formatAmount(downPayment) }} {{ currencyCode }}
               </v-col>
               <v-col cols="3">
-                ${{ monthlyPayment }} {{ currencyCode }}
+                ${{ formatAmount(monthlyPayment) }} {{ currencyCode }}
               </v-col>
               <v-col cols="3">
-                ${{ residualValue }} {{ currencyCode }}
+                ${{ formatAmount(residualValue) }} {{ currencyCode }}
               </v-col>
             </v-row>
           </v-container>
@@ -273,7 +271,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
             <v-row>
               <v-col cols="4">
                 <div>
-                  <h3>Inversión total: <strong>${{ projectCost }} {{ currencyCode }}</strong></h3>
+                  <h3>Inversión total: <strong>${{ formatAmount(projectCost) }} {{ currencyCode }}</strong></h3>
                 </div>
               </v-col>
               <v-col cols="4">
@@ -288,12 +286,12 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               </v-col>
               <v-col cols="6">
                 <div>
-                  <h3>Margen de contribución mensual: <strong>${{ monthlyContribution }} {{ currencyCode }}</strong></h3>
+                  <h3>Margen de contribución mensual: <strong>${{ formatAmount(monthlyContribution) }} {{ currencyCode }}</strong></h3>
                 </div>
               </v-col>
               <v-col cols="6">
                 <div>
-                  <h3>Margen de contribución anual: <strong>${{ annualContribution }} {{ currencyCode }}</strong></h3>
+                  <h3>Margen de contribución anual: <strong>${{ formatAmount(annualContribution) }} {{ currencyCode }}</strong></h3>
                 </div>
               </v-col>
               <v-col></v-col>
@@ -308,7 +306,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
                         'monthly-roi-positive': monthlyReturnOnInvestment > 0,
                       }"
                     >
-                      ${{ monthlyReturnOnInvestment }} {{ currencyCode }}
+                      ${{ formatAmount(monthlyReturnOnInvestment) }} {{ currencyCode }}
                     </strong>
                   </h3>
                 </div>

@@ -230,7 +230,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
                 <br />
 
                 <v-expansion-panels
-                  v-if="item.serietxt || item.descripcc || item.comentario"
+                  v-if="item.serietxt || item.descripcc || item.comentario || getEquipmentScopes(item)?.mejoras?.length"
                   v-model="openedEquipmentPanels[item.idcequipos]"
                   variant="accordion"
                 >
@@ -242,6 +242,19 @@ watch(() => [props.quotationId, props.accessToken], () => {
                   </v-expansion-panel>
                   <v-expansion-panel v-if="item.descripcc" title="Características de construcción">
                     <v-expansion-panel-text>{{ item.descripcc }}</v-expansion-panel-text>
+                  </v-expansion-panel>
+                  <v-expansion-panel
+                    v-if="getEquipmentScopes(item)?.mejoras?.length"
+                    title="Mejoras"
+                  >
+                    <v-expansion-panel-text>
+                      <p
+                        v-for="(mejora, index) in getEquipmentScopes(item).mejoras"
+                        :key="index"
+                      >
+                        {{ mejora.descripcion }}
+                      </p>
+                    </v-expansion-panel-text>
                   </v-expansion-panel>
                 </v-expansion-panels>
               </v-col>
@@ -295,7 +308,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
 
               <v-col cols="12" class="equipment-image-column">
                 <a v-if="item.serie_desc" :href="item.serie_desc" rel="noopener" target="_blank">
-                  Ver información de la serie
+                  Información y videos de la serie
                   <v-icon icon="mdi-open-in-new" size="small" />
                 </a>
               </v-col>

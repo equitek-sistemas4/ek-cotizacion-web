@@ -81,7 +81,7 @@ const videos = [
 
     <br/>
 
-    <h1>Videos</h1>
+    <h1>Testimoniales</h1>
     <div class="videos-grid">
       <v-card v-for="video in videos" :key="video.id" variant="outlined">
         <v-card-title>{{ video.title }}</v-card-title>

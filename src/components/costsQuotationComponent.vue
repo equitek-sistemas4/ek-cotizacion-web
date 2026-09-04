@@ -20,12 +20,8 @@ const equipmentHeaders = computed(() => {
   const headers = [
     { title: 'Modelo', key: 'modelo' },
     { title: 'Descripción', key: 'descripcion' },
-    { title: 'Costo', key: 'costo', align: 'end' },
+    { title: 'Valor del equipo', key: 'valorEquipo', align: 'end' },
   ]
-
-  if (equipment.value.some((item) => Number(item.mejora) > 0)) {
-    headers.push({ title: 'Mejora', key: 'mejora' })
-  }
 
   return headers
 })
@@ -45,6 +41,10 @@ const toNumber = (value) => {
 
   return Number.isFinite(parsedValue) ? parsedValue : 0
 }
+
+const formatAmount = (value) => new Intl.NumberFormat('es-MX', {
+  maximumFractionDigits: 2,
+}).format(toNumber(value))
 
 const discountRate = computed(() => toNumber(quotationInfo.value?.descuento) / 100)
 
@@ -206,7 +206,8 @@ watch(() => [props.quotationId, props.accessToken], () => {
 
     <template v-else>
       <div>
-        <p class="equipment-eyebrow">{{ quotationHeading() }}</p>
+        <h3 class="equipment-eyebrow">{{ quotationHeading() }}</h3>
+        <p>Esta es una cotización informativa</p>
         <h1>Equipos cotizados</h1>
       </div>
 
@@ -223,21 +224,18 @@ watch(() => [props.quotationId, props.accessToken], () => {
           <template #item.descripcion="{ value }">
             <span :title="value">{{ truncateText(value) || '—' }}</span>
           </template>
-          <template #item.costo="{ item }">
+          <template #item.valorEquipo="{ item }">
             <span class="equipment-cost">
               <strong>
-                ${{ item.costoactual ?? item.costo }} {{ currencyCode }}
+                ${{ formatAmount(toNumber(item.costoactual ?? item.costo) + toNumber(item.mejora)) }} {{ currencyCode }}
               </strong>
             </span>
-          </template>
-          <template #item.mejora="{ value }">
-            <span v-if="Number(value) > 0">${{ value }} {{ currencyCode }}</span>
           </template>
         </v-data-table>
       </div>
 
       <div v-if="extras.length" class="equipment-list">
-        <h3>Extras cotizados</h3>
+        <h3>Costos extras</h3>
         <v-alert v-if="extrasError" type="error" variant="tonal">
           {{ extrasError }}
         </v-alert>
@@ -253,7 +251,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
         >
           <template #item.descripcion="{ value }">{{ value || '—' }}</template>
           <template #item.costoe="{ value }">
-            <span class="equipment-cost"><strong>${{ value ?? 0 }} {{ currencyCode }}</strong></span>
+            <span class="equipment-cost"><strong>${{ formatAmount(value) }} {{ currencyCode }}</strong></span>
           </template>
         </v-data-table>
       </div>
@@ -263,27 +261,28 @@ watch(() => [props.quotationId, props.accessToken], () => {
           <tbody>
             <tr>
               <td>Subtotal</td>
-              <td>${{ quotationTotals.subtotal }} {{ currencyCode }}</td>
+              <td>${{ formatAmount(quotationTotals.subtotal) }} {{ currencyCode }}</td>
             </tr>
-            <tr>
+            <tr v-if="Number(quotationInfo?.descuento ?? 0) !== 0">
               <td>Descuento ({{ quotationInfo?.descuento ?? 0 }}%)</td>
-              <td>-${{ quotationTotals.discount }} {{ currencyCode }}</td>
+              <td>-${{ formatAmount(quotationTotals.discount) }} {{ currencyCode }}</td>
             </tr>
             <tr>
               <td>Extras</td>
-              <td>${{ quotationTotals.extras }} {{ currencyCode }}</td>
+              <td>${{ formatAmount(quotationTotals.extras) }} {{ currencyCode }}</td>
             </tr>
             <tr>
               <td>IVA (16%)</td>
-              <td>${{ quotationTotals.tax }} {{ currencyCode }}</td>
+              <td>${{ formatAmount(quotationTotals.tax) }} {{ currencyCode }}</td>
             </tr>
             <tr class="quotation-total-row">
               <td>Total</td>
-              <td>${{ quotationTotals.total }} {{ currencyCode }}</td>
+              <td>${{ formatAmount(quotationTotals.total) }} {{ currencyCode }}</td>
             </tr>
           </tbody>
         </v-table>
       </v-card>
+      <p>Estos precios no tienen validez oficial hasta que sean validados por Equitek con base en los alcances del proyecto</p>
 
       <section class="conditions-section">
         <h2>Condiciones comerciales</h2>
@@ -370,10 +369,6 @@ watch(() => [props.quotationId, props.accessToken], () => {
   border-radius: 8px;
   overflow: hidden;
 }
-.equipment-table :deep(th:nth-child(4)),
-.equipment-table :deep(td:nth-child(4)) {
-  border-left: 1px solid rgb(var(--v-theme-border));
-}
 .equipment-cost {
   display: block;
   text-align: right;
@@ -432,7 +427,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
 .equipment-eyebrow {
   margin: 0;
   color: rgb(var(--v-theme-primary));
-  font-size: 0.84rem;
+  font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;

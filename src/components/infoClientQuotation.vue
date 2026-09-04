@@ -256,8 +256,8 @@ const selectTab = (tab) => {
 }
 
 .brand-logo {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   margin-block: -40px;
   object-fit: contain;
 }

@@ -21,7 +21,7 @@ const router = createRouter({
       component: () => import('../views/ChatView.vue'),
       meta: {
         icon: 'mdi-forum-outline',
-        navLabel: 'Chats',
+        navLabel: 'Cotizaciones',
         showInNav: true,
       },
     },

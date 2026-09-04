@@ -95,9 +95,10 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
     <template v-else-if="quotationInfo">
       <div class="quotation-heading">
         <div class="quotation-heading-content">
-          <p class="portal-eyebrow">Cotización #{{ quotationInfo.idcoti }}</p>
+          <h2 class="portal-eyebrow">Cotización #{{ quotationInfo.idcoti }}</h2>
           <h1>{{ quotationInfo.empresa || prospectInfo?.empresa || 'Cotización' }}</h1>
-          <h4 style="color: white;"> Contacto: {{ prospectInfo.nombre }} </h4>
+          <br />
+          <h3 style="color: white;"> Contacto: {{ prospectInfo.nombre }} </h3>
         </div>
         <div class="quotation-status">
           <v-chip color="primary" variant="flat">
@@ -261,7 +262,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
 .portal-eyebrow {
   margin: 0;
   color: white;
-  font-size: 0.84rem;
+  font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;

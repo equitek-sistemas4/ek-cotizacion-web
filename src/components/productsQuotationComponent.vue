@@ -1,6 +1,7 @@
 <script setup>
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { getChatMemberByCode } from '@/services/chats'
 import { getQuotationFiles, getQuotationInfo, getQuotationProducts, uploadFileQuotationProduct } from '@/services/quotations'
 
@@ -10,6 +11,7 @@ const props = defineProps({
 })
 
 const route = useRoute()
+const authStore = useAuthStore()
 const loading = ref(false)
 const errorMessage = ref('')
 const products = ref([])
@@ -72,6 +74,32 @@ const isProductUploading = (product) => Boolean(productUploads.value[product?.id
 const getProductUploadError = (product) => productUploadErrors.value[product?.idprod] ?? ''
 const getProductUploadSuccess = (product) => productUploadSuccesses.value[product?.idprod] ?? ''
 
+const getFilesAccessContext = async () => {
+  if (authStore.user && authStore.userId != null && authStore.accessToken) {
+    return {
+      userId: authStore.userId,
+      accessToken: authStore.accessToken,
+    }
+  }
+
+  const accessCode = route.params.access_code
+
+  if (!accessCode || !props.accessToken) {
+    return null
+  }
+
+  const chatMember = await getChatMemberByCode(accessCode)
+
+  if (chatMember?.user_id == null) {
+    return null
+  }
+
+  return {
+    userId: chatMember.user_id,
+    accessToken: props.accessToken,
+  }
+}
+
 const showProductUploadSuccess = (productId, message) => {
   clearTimeout(productUploadSuccessTimers.get(productId))
   productUploadSuccesses.value = { ...productUploadSuccesses.value, [productId]: message }
@@ -112,7 +140,6 @@ const openPdfPreview = (fileUrl) => {
 const uploadProductFiles = async (product) => {
   const productId = product?.idprod
   const files = getProductFiles(product)
-  const accessCode = route.params.access_code
 
   productUploadErrors.value = { ...productUploadErrors.value, [productId]: '' }
   productUploadSuccesses.value = { ...productUploadSuccesses.value, [productId]: '' }
@@ -125,10 +152,10 @@ const uploadProductFiles = async (product) => {
     return
   }
 
-  if (!props.quotationId || !accessCode) {
+  if (!props.quotationId) {
     productUploadErrors.value = {
       ...productUploadErrors.value,
-      [productId]: 'No fue posible identificar la cotizaciÃ³n o el acceso del usuario.',
+      [productId]: 'No fue posible identificar la cotización o el acceso del usuario.',
     }
     return
   }
@@ -136,18 +163,18 @@ const uploadProductFiles = async (product) => {
   productUploads.value = { ...productUploads.value, [productId]: true }
 
   try {
-    const chatMember = await getChatMemberByCode(accessCode)
+    const accessContext = await getFilesAccessContext()
 
-    if (chatMember?.user_id == null) {
+    if (!accessContext) {
       throw new Error('No fue posible identificar al usuario que carga los archivos.')
     }
 
     await Promise.all(files.map((file) => uploadFileQuotationProduct({
       quotation_id: props.quotationId,
-      user_id: chatMember.user_id,
+      user_id: accessContext.userId,
       fk_idprod: productId,
       file,
-      accessToken: props.accessToken,
+      accessToken: accessContext.accessToken,
     })))
 
     setProductFiles(product, [])
@@ -168,25 +195,23 @@ const uploadProductFiles = async (product) => {
 }
 
 const loadQuotationFiles = async () => {
-  const accessCode = route.params.access_code
-
-  if (!props.quotationId || !accessCode) {
+  if (!props.quotationId) {
     quotationFiles.value = []
     return
   }
 
   try {
-    const chatMember = await getChatMemberByCode(accessCode)
+    const accessContext = await getFilesAccessContext()
 
-    if (chatMember?.user_id == null) {
+    if (!accessContext) {
       quotationFiles.value = []
       return
     }
 
     const response = await getQuotationFiles(
       props.quotationId,
-      chatMember.user_id,
-      { accessToken: props.accessToken },
+      accessContext.userId,
+      { accessToken: accessContext.accessToken },
     )
 
     quotationFiles.value = Array.isArray(response) ? response : []
@@ -243,7 +268,13 @@ const loadQuotationInfo = async () => {
   }
 }
 
-watch(() => [props.quotationId, props.accessToken, route.params.access_code], () => {
+watch(() => [
+  props.quotationId,
+  props.accessToken,
+  route.params.access_code,
+  authStore.userId,
+  authStore.accessToken,
+], () => {
   loadProducts()
   loadQuotationFiles()
   loadQuotationInfo()

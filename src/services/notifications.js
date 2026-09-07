@@ -13,10 +13,12 @@ export const getUnreadNotifications = async (user_id) => {
 export const createNotification = async ({
     user_id,
     section,
+    chat_id,
 }) => {
     const body = new URLSearchParams()
     body.append('user_id', user_id)
     body.append('section', section)
+    body.append('chat_id', chat_id)
     const response = await notificationsApi.post(`/notifications/create`, body, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -30,10 +32,12 @@ export const createNotification = async ({
 export const readNotifications = async ({
     user_id,
     section,
+    chat_id,
 }) => {
     const body = new URLSearchParams()
     body.append('user_id', user_id)
     body.append('section', section)
+    body.append('chat_id', chat_id)
     const response = await notificationsApi.post(`/notifications/read`, body, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',

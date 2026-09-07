@@ -299,7 +299,7 @@ onBeforeUnmount(closeSocket)
   <v-btn
     v-if="chat && !isOpen"
     class="chat-fab"
-    color="primary"
+    color="secondary"
     append-icon="mdi-message-text"
     size="large"
     @click="isOpen = true"

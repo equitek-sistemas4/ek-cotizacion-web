@@ -103,6 +103,9 @@ const getEquipmentScopes = (item) => scopeEquipment.value.find(
   (scopeItem) => String(scopeItem.idcequipos) === String(item.idcequipos),
 )
 
+const getElectricalRequirements = (item) => item?.Electricos ?? item?.electricos ?? []
+const getPneumaticRequirements = (item) => item?.Neumaticos ?? item?.neumaticos ?? []
+
 const getEquipmentImage = (serie) => {
   const normalizedSerie = String(serie || '').trim().toUpperCase()
 
@@ -215,7 +218,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
           <v-card-title class="equipment-title">
             <div>
               <!--<p>{{ item.familia }}</p>-->
-              <v-chip color="default" variant="flat">{{ item.familia }}</v-chip>
+              <v-chip size="large" color="default" variant="flat">{{ item.familia }}</v-chip>
               <h2>Modelo: {{ item.modelo }}</h2>
             </div>
             <!--<strong>{{ formatCurrency(item.costoactual ?? item.costo) }}</strong>-->
@@ -230,7 +233,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
                 <br />
 
                 <v-expansion-panels
-                  v-if="item.serietxt || item.descripcc || item.comentario || getEquipmentScopes(item)?.mejoras?.length"
+                  v-if="item.serietxt || item.descripcc || item.comentario || getEquipmentScopes(item)?.mejoras?.length || getElectricalRequirements(item).length || getPneumaticRequirements(item).length"
                   v-model="openedEquipmentPanels[item.idcequipos]"
                   variant="accordion"
                 >
@@ -256,6 +259,33 @@ watch(() => [props.quotationId, props.accessToken], () => {
                       </p>
                     </v-expansion-panel-text>
                   </v-expansion-panel>
+                  <v-expansion-panel
+                    v-if="getElectricalRequirements(item).length"
+                    title="Requerimientos eléctricos"
+                  >
+                    <v-expansion-panel-text>
+                      <p
+                        v-for="requirement in getElectricalRequirements(item)"
+                        :key="requirement.idere"
+                      >
+                        <strong>{{ requirement.requ }}:</strong> {{ formatValue(requirement.valor) }}
+                      </p>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                  <v-expansion-panel
+                    v-if="getPneumaticRequirements(item).length"
+                    title="Requerimientos neumáticos"
+                  >
+                    <v-expansion-panel-text>
+                      <p
+                        v-for="requirement in getPneumaticRequirements(item)"
+                        :key="requirement.idere"
+                      >
+                        <strong>{{ requirement.requn }}:</strong>
+                        {{ formatValue(requirement.valor) }} {{ requirement.med }}
+                      </p>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
                 </v-expansion-panels>
               </v-col>
 
@@ -266,6 +296,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
                   class="equipment-image"
                   contain
                 />
+                <p class="equipment-image-note">Nota: Esta imagen es de referencia; el modelo cotizado puede variar.</p>
               </v-col>
 
               <v-col v-if="getEquipmentScopes(item)" cols="12" class="equipment-scopes-column">
@@ -340,6 +371,14 @@ watch(() => [props.quotationId, props.accessToken], () => {
   margin-bottom: 16px;
   border-radius: 8px;
   aspect-ratio: 16 / 9;
+}
+.equipment-image-note {
+  margin: 0;
+  color: rgb(var(--v-theme-textMuted));
+  font-size: 0.80rem;
+  font-style: italic;
+  line-height: 1.4;
+  text-align: right;
 }
 .equipment-video {
   width: 100%;

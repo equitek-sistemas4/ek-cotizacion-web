@@ -95,18 +95,20 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
     <template v-else-if="quotationInfo">
       <div class="quotation-heading">
         <div class="quotation-heading-content">
-          <h2 class="portal-eyebrow">Cotización #{{ quotationInfo.idcoti }}</h2>
           <h1>{{ quotationInfo.empresa || prospectInfo?.empresa || 'Cotización' }}</h1>
           <br />
-          <h3 style="color: white;"> Contacto: {{ prospectInfo.nombre }} </h3>
+          <h3 style="color: white;"> Atención: {{ prospectInfo.nombre }} </h3>
         </div>
         <div class="quotation-status">
-          <v-chip color="primary" variant="flat">
+          <h2 class="portal-eyebrow">Cotización #{{ quotationInfo.idcoti }}</h2>
+          <h4 style="color: white;">Tipo: {{ quotationInfo.estado || 'Sin estado' }}</h4>
+          <h4 style="color: white;">Fecha cot.: {{ quotationInfo.fecha_seguimiento || 'Sin información' }}</h4>
+          <!--<v-chip color="primary" variant="flat">
             {{ quotationInfo.estado || 'Sin estado' }}
           </v-chip>
           <v-chip class="tracking-chip" color="secondary" prepend-icon="mdi-calendar-clock" variant="flat">
             {{ quotationInfo.fecha_seguimiento || 'Sin información' }}
-          </v-chip>
+          </v-chip>-->
         </div>
       </div>
 
@@ -176,14 +178,14 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
               <span>Familias</span>
               <strong>{{ equipmentSummary.families.join(', ') || 'Sin información' }}</strong>
             </div>
-            <div>
+            <!--<div>
               <span>Modelos</span>
               <strong>{{ equipmentSummary.models.join(', ') || 'Sin información' }}</strong>
             </div>
             <div class="equipment-summary-full">
               <span>Series</span>
               <strong>{{ equipmentSummary.series.join(', ') || 'Sin información' }}</strong>
-            </div>
+            </div>-->
           </div>
         </v-card-text>
       </v-card>

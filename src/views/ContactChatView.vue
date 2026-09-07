@@ -380,6 +380,7 @@ const sendMessage = async () => {
     await createNotification({
       user_id: userId.value,
       section: 'chat',
+      chat_id: chatId.value,
     })
 
     message.value = ''
@@ -426,7 +427,7 @@ onBeforeUnmount(() => {
     <v-btn
       aria-label="Abrir chat"
       class="chat-fab"
-      color="primary"
+      color="secondary"
       append-icon="mdi-message-text"
       size="large"
       @click="chatOpen = true"

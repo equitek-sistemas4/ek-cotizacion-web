@@ -307,7 +307,7 @@ onBeforeUnmount(closeSocket)
     Chat
   </v-btn>
 
-  <v-navigation-drawer v-model="isOpen" class="chat-drawer" location="right" temporary width="1080">
+  <v-navigation-drawer v-model="isOpen" class="chat-drawer" location="right" temporary width="800">
     <section class="chat-content">
       <header class="conversation-header">
         <div class="conversation-user">
@@ -356,7 +356,7 @@ onBeforeUnmount(closeSocket)
 
 <style scoped>
 .chat-fab { position: fixed; right: 24px; bottom: 24px; z-index: 20; }
-.chat-drawer { width: min(100vw, 1080px) !important; }
+.chat-drawer { width: min(100vw, 800px) !important; }
 .chat-drawer :deep(.v-navigation-drawer__content) { height: 100%; }
 .chat-content { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: 100%; height: 100%; overflow: hidden; background: rgb(var(--v-theme-surface)); }
 .conversation-header, .conversation-user, .conversation-actions, .message-composer { display: flex; align-items: center; }

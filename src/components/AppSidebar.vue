@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
           :to="item.path"
           color="primary"
           rounded="lg"
-          
+          @click="item.name === 'contact-requests' && markNotificationsAsRead(item.name)"
         >
           <template #append>
             <v-badge

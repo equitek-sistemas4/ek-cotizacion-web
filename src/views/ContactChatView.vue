@@ -459,6 +459,7 @@ onBeforeUnmount(() => {
               :chat-id="chatId"
               :contact-id="contactId"
               :access-token="token"
+              :quotation-id="quotationId"
               @contact-created="refreshSelectedChat"
             >
               <template #activator="{ props }">

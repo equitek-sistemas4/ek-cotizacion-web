@@ -234,7 +234,7 @@ const selectTab = (tab) => {
       <section class="iso-banner">
         <div>
           <p class="iso-eyebrow">Comprometidos con la Calidad:</p>
-          <h2>Certificación ISO 9001:2015</h2>
+          <h3>Certificación ISO 9001:2015</h3>
           <p class="iso-description">
             Nuestra certificación ISO 9001:2015 garantiza que todos nuestros procesos cumplen con los más altos estándares internacionales, asegurando equipos confiables, eficientes y diseñados para superar tus expectativas.
           </p>
@@ -375,10 +375,10 @@ const selectTab = (tab) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 48px;
+  gap: 32px;
   width: min(100%, 920px);
   margin: 0 auto;
-  padding: 48px 24px;
+  padding: 32px 24px;
   color: #243957;
 }
 
@@ -389,22 +389,23 @@ const selectTab = (tab) => {
 }
 
 .iso-eyebrow {
-  font-size: 1.1rem;
+  font-size: 0.78rem;
 }
 
 .iso-banner h2 {
-  margin-top: 12px;
-  font-size: clamp(1.7rem, 3vw, 2.35rem);
+  margin-top: 6px;
+  font-size: clamp(1.15rem, 2vw, 1.6rem);
 }
 
 .iso-description {
   max-width: 540px;
-  margin-top: 18px;
-  line-height: 1.65;
+  margin-top: 8px;
+  font-size: 0.74rem;
+  line-height: 1.4;
 }
 
 .iso-logo {
-  width: min(230px, 32vw);
+  width: min(70px, 20vw);
   height: auto;
 }
 
@@ -423,9 +424,9 @@ const selectTab = (tab) => {
 .footer-content {
   display: grid;
   grid-template-columns: 1.35fr 2fr 1.1fr;
-  gap: 44px;
-  padding-top: 54px;
-  padding-bottom: 48px;
+  gap: 24px;
+  padding-top: 30px;
+  padding-bottom: 28px;
 }
 
 .footer-company,
@@ -433,27 +434,27 @@ const selectTab = (tab) => {
 .footer-newsletter {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 7px;
 }
 
 .footer-logo {
-  width: 180px;
-  height: 52px;
-  margin-bottom: 10px;
+  width: 120px;
+  height: 34px;
+  margin-bottom: 4px;
   object-fit: contain;
   object-position: left center;
 }
 
 .footer-company a,
 .footer-company p,
-.footer-links span {
+.footer-links a {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   color: inherit;
-  font-size: .84rem;
-  line-height: 1.5;
+  font-size: .78rem;
+  line-height: 1.35;
   text-decoration: none;
 }
 
@@ -465,23 +466,24 @@ const selectTab = (tab) => {
 .footer-links {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 26px;
+  gap: 14px;
 }
 
 .footer-main h3 {
   margin: 0 0 2px;
   color: #ff3945;
-  font-size: 1rem;
+  font-size: .74rem;
   text-transform: uppercase;
 }
 
 .footer-newsletter input,
 .footer-newsletter button {
   width: 100%;
-  min-height: 40px;
+  min-height: 30px;
   border: 0;
-  padding: 10px 12px;
+  padding: 6px 8px;
   font: inherit;
+  font-size: .7rem;
 }
 
 .footer-newsletter input {
@@ -502,14 +504,14 @@ const selectTab = (tab) => {
   justify-content: space-between;
   gap: 24px;
   border-top: 1px solid rgba(255, 255, 255, .1);
-  padding-top: 20px;
-  padding-bottom: 20px;
-  font-size: .8rem;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: .62rem;
 }
 
 .footer-bottom img {
-  width: 58px;
-  height: 58px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
   filter: grayscale(1) brightness(0) invert(1);
 }
@@ -583,19 +585,19 @@ const selectTab = (tab) => {
   .iso-banner {
     flex-direction: column;
     align-items: flex-start;
-    gap: 28px;
-    padding-block: 36px;
+    gap: 18px;
+    padding-block: 24px;
   }
 
   .iso-logo {
     align-self: center;
-    width: 180px;
+    width: 110px;
   }
 
   .footer-content {
     grid-template-columns: 1fr;
-    gap: 36px;
-    padding-top: 40px;
+    gap: 24px;
+    padding-top: 28px;
   }
 
   .footer-links {

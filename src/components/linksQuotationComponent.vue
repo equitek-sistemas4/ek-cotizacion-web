@@ -1,5 +1,5 @@
 <script setup>
-import equitekPersonalImage from '@/assets/equitek-personal.webp'
+import equitekPersonalImage from '@/assets/equitek-nosotros.webp'
 
 const socialLinks = [
   /*{

@@ -65,7 +65,7 @@
             />
           </v-col>
 
-          <v-col cols="12">
+          <!--<v-col cols="12">
             <v-text-field
               autocomplete="off"
               v-model="form.display_name"
@@ -76,7 +76,7 @@
               outlined
               dense
             />
-          </v-col>
+          </v-col>-->
 
           <v-col cols="12">
             <v-text-field
@@ -250,7 +250,6 @@ const handleCreateContact = async () => {
     ['name', 'nombre'],
     ['phone_number', 'teléfono'],
     ['email', 'correo electrónico'],
-    ['display_name', 'nombre mostrado'],
     ['company', 'empresa'],
     ['position', 'puesto'],
   ]
@@ -297,7 +296,7 @@ const handleCreateContact = async () => {
       contact_name: form.value.name,
       contact_phone_number: `${phoneCountryCode.value}${form.value.phone_number}`,
       contact_email: form.value.email,
-      contact_display_name: form.value.display_name,
+      contact_display_name: form.value.name,
       contact_company: form.value.company,
       contact_position: form.value.position,
       idempresa_contacto: contact.idempresa_contacto,

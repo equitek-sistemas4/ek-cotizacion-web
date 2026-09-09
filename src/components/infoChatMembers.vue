@@ -294,9 +294,10 @@ watch(() => props.chatId, loadChat, { immediate: true })
 
                       <v-spacer />
 
-                      <v-tooltip text="Ver cotización">
+                      <!--<v-tooltip text="Ver cotización">
                         <template #activator="{ props: tooltipProps }">
                           <v-btn
+                            v-if="!hideMemberLinkActions"
                             aria-label="Ver cotización"
                             color="primary"
                             icon="mdi-eye"
@@ -305,7 +306,7 @@ watch(() => props.chatId, loadChat, { immediate: true })
                             @click="viewQuotation"
                           />
                         </template>
-                      </v-tooltip>
+                      </v-tooltip>-->
 
                       <v-tooltip v-if="showDeleteChat" text="Eliminar chat">
                         <template #activator="{ props: tooltipProps }">

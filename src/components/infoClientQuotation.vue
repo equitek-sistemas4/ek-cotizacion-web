@@ -78,19 +78,19 @@ const selectTab = (tab) => {
       >
         <v-tab value="inicio" @click="registerSectionOpen('inicio')">
           <v-icon class="tab-icon" icon="mdi-home"></v-icon>
-          Inicio
+          <span class="tab-label">Inicio</span>
         </v-tab>
         <v-tab value="productos" @click="registerSectionOpen('productos')">
           <v-icon class="tab-icon" icon="mdi-file-check"></v-icon>
-          Requerimientos / Alcances del Proyecto
+          <span class="tab-label">Requerimientos / Alcances del Proyecto</span>
         </v-tab>
         <v-tab value="equipos" @click="registerSectionOpen('equipos')">
           <v-icon class="tab-icon" icon="mdi-laptop"></v-icon>
-          Equipos
+          <span class="tab-label">Equipos</span>
         </v-tab>
         <v-tab value="precios" @click="registerSectionOpen('precios')">
           <v-icon class="tab-icon" icon="mdi-tag"></v-icon>
-          Precios, Condiciones y Garantias
+          <span class="tab-label">Precios, Condiciones y Garantias</span>
         </v-tab>
         <!--<v-tab value="alcances">
           <v-icon class="tab-icon" icon="mdi-target"></v-icon>
@@ -102,11 +102,11 @@ const selectTab = (tab) => {
         </v-tab>-->
         <v-tab value="financiero" @click="registerSectionOpen('financiero')">
           <v-icon class="tab-icon" icon="mdi-cash"></v-icon>
-          Analisis Financiero
+          <span class="tab-label">Analisis Financiero</span>
         </v-tab>
         <v-tab value="ligas" @click="registerSectionOpen('ligas')">
           <v-icon class="tab-icon" icon="mdi-link"></v-icon>
-          Ligas
+          <span class="tab-label">Ligas</span>
         </v-tab>
       </v-tabs>
 
@@ -231,7 +231,7 @@ const selectTab = (tab) => {
     <br/><br/>
 
     <footer class="quotation-footer">
-      <section class="iso-banner">
+      <!--<section class="iso-banner">
         <div>
           <p class="iso-eyebrow">Comprometidos con la Calidad:</p>
           <h3>Certificación ISO 9001:2015</h3>
@@ -240,7 +240,7 @@ const selectTab = (tab) => {
           </p>
         </div>
         <img :src="isoLogoUrl" alt="Certificación ISO 9001:2015" class="iso-logo" />
-      </section>
+      </section>-->
 
       <section class="footer-main">
         <div class="footer-content">
@@ -283,9 +283,19 @@ const selectTab = (tab) => {
             <button type="button">Suscríbete</button>
           </div>
         </div>
+        <section class="iso-banner">
+          <div>
+            <p class="iso-eyebrow">Comprometidos con la Calidad:</p>
+            <h3>Certificación ISO 9001:2015</h3>
+            <p class="iso-description">
+              Nuestra certificación ISO 9001:2015 garantiza que todos nuestros procesos cumplen con los más altos estándares internacionales, asegurando equipos confiables, eficientes y diseñados para superar tus expectativas.
+            </p>
+          </div>
+          <img :src="isoLogoUrl" alt="Certificación ISO 9001:2015" class="iso-logo" />
+        </section>
         <div class="footer-bottom">
           <span>©2026 EQUITEK S.A. de C.V. Todos los Derechos Reservados</span>
-          <img :src="isoLogoUrl" alt="ISO 9001:2015" />
+          <!--<img :src="isoLogoUrl" alt="ISO 9001:2015" />-->
         </div>
       </section>
     </footer>
@@ -324,8 +334,8 @@ const selectTab = (tab) => {
 }
 
 .brand-logo {
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
   margin-block: -40px;
   object-fit: contain;
 }
@@ -333,7 +343,7 @@ const selectTab = (tab) => {
 .quotation-tabs {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 48px;
+  min-height: 68px;
 }
 
 .mobile-tabs-menu {
@@ -341,7 +351,12 @@ const selectTab = (tab) => {
 }
 
 .quotation-tabs :deep(.v-tab) {
+  min-height: 64px;
   color: rgb(var(--v-theme-surface)) !important;
+}
+
+.quotation-tabs :deep(.v-btn__content) {
+  white-space: normal;
 }
 
 .quotation-tabs :deep(.tab-icon) {
@@ -358,7 +373,15 @@ const selectTab = (tab) => {
 }
 
 .tab-icon {
+  flex: 0 0 auto;
   margin-right: 8px;
+}
+
+.tab-label {
+  display: block;
+  max-width: 150px;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .client-portal-content {
@@ -390,6 +413,7 @@ const selectTab = (tab) => {
 
 .iso-eyebrow {
   font-size: 0.78rem;
+  color:#fff
 }
 
 .iso-banner h2 {
@@ -402,11 +426,13 @@ const selectTab = (tab) => {
   margin-top: 8px;
   font-size: 0.74rem;
   line-height: 1.4;
+  color: #fff
 }
 
 .iso-logo {
   width: min(70px, 20vw);
   height: auto;
+  filter: grayscale(1) brightness(0) invert(1);
 }
 
 .footer-main {
@@ -438,10 +464,9 @@ const selectTab = (tab) => {
 }
 
 .footer-logo {
-  width: 120px;
-  height: 34px;
+  width: 220px;
+  height: 58px;
   margin-bottom: 4px;
-  object-fit: contain;
   object-position: left center;
 }
 

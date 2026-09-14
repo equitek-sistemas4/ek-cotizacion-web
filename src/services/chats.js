@@ -38,6 +38,16 @@ export const searchChatsMessages = async (chatId, { search = '', accessToken } =
   return response.data?.data ?? []
 }
 
+export const searchChatsMessagesWpp = async ({ phone_number, search = '', accessToken } = {}) => {
+  const normalizedSearch = typeof search === 'string' ? search.trim() : ''
+  const response = await chatsApi.get(`/chat_messages/phone/${encodeURIComponent(phone_number)}/search`, {
+    ...getAuthorizationConfig(accessToken),
+    params: normalizedSearch ? { search: normalizedSearch } : undefined,
+  })
+
+  return response.data?.data ?? []
+}
+
 
 export const getChatById = async (chatId, { accessToken } = {}) => {
   const response = await chatsApi.get(`/chats/${chatId}`, getAuthorizationConfig(accessToken))

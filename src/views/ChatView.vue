@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getChats } from '@/services/chats'
-import { getChatsWpp } from '@/services/chats_whatsapp'
 import { getUnreadNotifications, readNotifications } from '@/services/notifications'
 import { useAuthStore } from '@/stores/auth'
 import generateLinkQuotation from '@/components/generateLinkQuotation.vue'
@@ -58,13 +57,6 @@ const normalizeChat = (chat) => ({
   time: formatChatTime(chat.created_at),
 })
 
-const normalizeWhatsappChat = (chat) => normalizeChat({
-  ...chat,
-  channel: 'whatsapp',
-  name: chat.name ?? chat.contact?.name ?? chat.contact?.display_name ?? chat.contact_name ?? 'Conversación de WhatsApp',
-  description: chat.description ?? chat.contact?.company ?? chat.contact?.phone_number ?? chat.phone_number ?? 'WhatsApp',
-})
-
 const getUnreadNotificationCounts = async () => {
   if (!userId.value) {
     return {}
@@ -90,17 +82,13 @@ const fetchChats = async ({ preferredChatId = null, search = chatSearch.value } 
   chatsError.value = ''
   try {
     const chatParams = { search }
-    const whatsappParams = {}
     if (!shouldOmitUserIdFromChats.value) {
       chatParams.user_id = userId.value
-      whatsappParams.user_id = userId.value
     }
-    const [chatList, whatsappList, notificationCounts] = await Promise.all([getChats(chatParams), getChatsWpp(whatsappParams), getUnreadNotificationCounts()])
+    const [chatList, notificationCounts] = await Promise.all([getChats(chatParams), getUnreadNotificationCounts()])
     if (requestId !== chatsRequestId) return
     unreadNotificationsByChat.value = notificationCounts
-    const query = search.trim().toLocaleLowerCase()
-    const whatsappChats = whatsappList.map(normalizeWhatsappChat).filter((chat) => !query || `${chat.name} ${chat.description}`.toLocaleLowerCase().includes(query))
-    chats.value = [...chatList.map(normalizeChat), ...whatsappChats]
+    chats.value = chatList.map(normalizeChat).filter((chat) => chat.channel !== 'whatsapp')
     const targetChatId = preferredChatId ?? selectedChatId.value
     selectedChatId.value = chats.value.some((chat) => String(chat.id) === String(targetChatId)) ? targetChatId : null
   } catch (error) {

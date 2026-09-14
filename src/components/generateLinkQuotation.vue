@@ -33,12 +33,12 @@
         @click="dialog = true"
       ></v-btn>
 
-      <v-btn
+      <!--<v-btn
         aria-label="Crear conversación de WhatsApp"
         color="success"
         icon="mdi-whatsapp"
         @click="whatsappDialog = true"
-      ></v-btn>
+      ></v-btn>-->
     </v-speed-dial>
 
     <v-dialog

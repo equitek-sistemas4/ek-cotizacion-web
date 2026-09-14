@@ -190,6 +190,10 @@ const loadConversation = async () => {
     conversationChat.value = { ...chat, ...(detail ?? {}) }
     const list = Array.isArray(messagesData) ? messagesData : messagesData?.messages ?? []
     messages.value = list.map(normalizeMessage)
+    // El panel muestra el estado de carga mientras se obtiene la conversación;
+    // quitarlo primero garantiza que los mensajes ya estén renderizados al medir
+    // su altura para posicionar el scroll al final.
+    loading.value = false
     await scrollMessagesToBottom()
     connectSocket()
   } catch (requestError) {

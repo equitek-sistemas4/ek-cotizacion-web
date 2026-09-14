@@ -26,6 +26,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/whatsapp',
+      name: 'whatsapp',
+      component: () => import('../views/WhatsappView.vue'),
+      meta: {
+        icon: 'mdi-whatsapp',
+        navLabel: 'WhatsApp',
+        showInNav: true,
+      },
+    },
+    {
       path: '/users',
       name: 'users',
       component: () => import('../views/UsersView.vue'),

@@ -13,6 +13,19 @@ const quotationInfo = ref(null)
 const prospectInfo = ref(null)
 const equipmentSummary = ref(null)
 
+const formatDate = (value) => {
+  if (!value) return 'Sin información'
+
+  const [datePart] = String(value).split('T')
+  const [year, month, day] = datePart.split(' ')[0].split('-')
+
+  if (year && month && day) {
+    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`
+  }
+
+  return value
+}
+
 /*const formatCurrency = (value) => {
   if (value === null || value === undefined || value === '') {
     return 'Sin información'
@@ -102,7 +115,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
         <div class="quotation-status">
           <h2 class="portal-eyebrow">Cotización #{{ quotationInfo.idcoti }}</h2>
           <h4 style="color: white;">Tipo: {{ quotationInfo.estado || 'Sin estado' }}</h4>
-          <h4 style="color: white;">Fecha cot.: {{ quotationInfo.fecha_seguimiento || 'Sin información' }}</h4>
+          <h4 style="color: white;">Fecha cot.: {{ formatDate(quotationInfo.fecha_seguimiento) }}</h4>
           <!--<v-chip color="primary" variant="flat">
             {{ quotationInfo.estado || 'Sin estado' }}
           </v-chip>
@@ -161,10 +174,10 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
         </v-card>
       </div>
 
-      <v-card v-if="prospectInfo?.comentario" class="comments-card" variant="elevated">
+      <!--<v-card v-if="prospectInfo?.comentario" class="comments-card" variant="elevated">
         <v-card-title>Comentarios</v-card-title>
         <v-card-text>{{ prospectInfo.comentario }}</v-card-text>
-      </v-card>
+      </v-card>-->
 
       <v-card v-if="equipmentSummary" class="equipment-summary-card" variant="elevated">
         <v-card-title>Resumen de equipos</v-card-title>
@@ -175,7 +188,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
               <strong>{{ equipmentSummary.count }}</strong>
             </div>
             <div>
-              <span>Familias</span>
+              <span>Proceso</span>
               <strong>{{ equipmentSummary.families.join(', ') || 'Sin información' }}</strong>
             </div>
             <!--<div>

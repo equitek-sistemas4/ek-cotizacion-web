@@ -192,9 +192,9 @@ onMounted(async () => {
 }
 .chat-shell { 
   display: grid; 
-  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
   gap: 16px; 
-  width: min(100%, 1600px);
+  
   height: calc(100vh - 48px); 
   margin: 0 auto; 
   background: transparent; 

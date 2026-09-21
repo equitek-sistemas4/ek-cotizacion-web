@@ -47,6 +47,12 @@ const formatChatTime = (value) => {
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
+const truncateChatName = (value, maxLength = 17) => {
+  const name = String(value ?? '')
+
+  return name.length > maxLength ? `${name.slice(0, maxLength - 3)}...` : name
+}
+
 const normalizeChat = (chat) => ({
   id: chat.id,
   name: chat.name ?? 'Sin nombre',
@@ -160,8 +166,8 @@ onMounted(async () => {
                 <span v-else class="avatar-text">{{ chat.name.charAt(0) }}</span>
               </v-avatar>
             </template>
-            <v-list-item-title>
-              {{ chat.name }}
+            <v-list-item-title :title="chat.name">
+              {{ truncateChatName(chat.name) }}
               <template v-if="chat.channel !== 'whatsapp'">
                 #{{ chat.quotation_id }}
               </template>

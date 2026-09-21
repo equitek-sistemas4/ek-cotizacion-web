@@ -282,7 +282,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
           </tbody>
         </v-table>
       </v-card>
-      <p>Estos precios no tienen validez oficial hasta que sean validados por Equitek con base en los alcances del proyecto</p>
+      <p class="quotation-note">* Los precios mostrados son una referencia comercial y podrán confirmarse o ajustarse por EQUITEK de acuerdo con la configuración y alcance final de cada proyecto.</p>
 
       <section class="conditions-section">
         <h2>Condiciones comerciales</h2>
@@ -394,6 +394,15 @@ watch(() => [props.quotationId, props.accessToken], () => {
   color: rgb(var(--v-theme-primary));
   font-size: 1.05rem;
   font-weight: 700;
+}
+.quotation-note {
+  margin: 0;
+  padding: 12px 16px;
+  border-left: 4px solid rgb(var(--v-theme-primary));
+  border-radius: 4px;
+  background: rgb(var(--v-theme-surfaceVariant));
+  color: rgb(var(--v-theme-textMuted));
+  line-height: 1.5;
 }
 .conditions-section {
   display: grid;

@@ -438,7 +438,7 @@ onBeforeUnmount(() => {
       class="chat-drawer"
       location="right"
       temporary
-      width="560"
+      width="720"
     >
       <section class="chat-content">
         <header class="conversation-header">
@@ -652,7 +652,7 @@ onBeforeUnmount(() => {
 }
 
 .chat-drawer {
-  width: min(100vw, 560px) !important;
+  width: min(100vw, 720px) !important;
 }
 
 .chat-content {

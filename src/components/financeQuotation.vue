@@ -13,13 +13,14 @@ const projectCost = ref(0)
 const quotationInfo = ref(null)
 const prospectInfo = ref(null)
 const term = ref(12)
-const downPaymentPercent = ref(15)
+const downPaymentPercent = ref(10)
 const monthlyPayment = ref(0)
 const products = ref([])
 const productionInputs = ref({})
 const workingDaysPerMonth = ref(24)
 const legacyExpectedMonthlyProduction = ref(0)
 const legacyContributionPerUnit = ref(0)
+const financingTerms = [12, 18, 24, 36]
 
 const currencyCode = computed(() => {
   const currency = String(quotationInfo.value?.moneda_codigo ?? '').trim().toUpperCase()
@@ -232,14 +233,16 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
         <v-card-text class="finance-content">
           <div class="finance-heading">
             <h2>OPCIÓN DE ARRENDAMIENTO FINANCIERO</h2>
-            <p>Hasta 24 meses sin intereses</p>
+            <p>Hasta 36 meses sin intereses</p>
           </div>
 
           <div class="finance-controls">
             <v-select
               v-model="term"
-              :items="[12, 18, 24]"
+              :items="financingTerms"
+              hint="Existen opciones de 48 y 60 meses"
               label="Plazo (meses)"
+              persistent-hint
               variant="outlined"
             />
             <v-text-field
@@ -264,38 +267,39 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
 
           <v-container>
             <v-row>
-              <v-col cols="3">
+              <v-col cols="4">
                 <h4>Plazo</h4>
               </v-col>
-              <v-col cols="3">
+              <v-col cols="4">
                 <h4>Anticipo</h4>
               </v-col>
-              <v-col cols="3">
+              <v-col cols="4">
                 <h4>Mensualidad</h4>
               </v-col>
-              <v-col cols="3">
+              <!--<v-col cols="3">
                 <h4>Valor residual (1%)</h4>
-              </v-col>
+              </v-col>-->
               <v-divider></v-divider>
-              <v-col cols="3">
+              <v-col cols="4">
                 {{ term }} meses
               </v-col>
-              <v-col cols="3">
+              <v-col cols="4">
                 {{ Number(downPaymentPercent) || 0 }}% · ${{ formatAmount(downPayment) }} {{ currencyCode }}
               </v-col>
-              <v-col cols="3">
+              <v-col cols="4">
                 ${{ formatAmount(monthlyPayment) }} {{ currencyCode }}
               </v-col>
-              <v-col cols="3">
+              <!--<v-col cols="3">
                 ${{ formatAmount(residualValue) }} {{ currencyCode }}
-              </v-col>
+              </v-col>-->
             </v-row>
           </v-container>
 
           <p class="finance-note"><strong>Montos expresados antes de IVA.</strong></p>
           <p class="finance-disclaimer">
-            Este cálculo es demostrativo y aproximado. Si desea aplicar a alguno de los tipos de
-            financiamiento, comuníquelo a su asesor comercial.
+            Este cálculo es demostrativo y aproximado.
+            No se considera % de interés alguno y este depende con la casa financiera con la que se autorice el tramite.
+            Si desea aplicar a alguno de los tipos de financiamiento, comuníquelo a su asesor comercial.
           </p>
           <br/>
         </v-card-text>
@@ -304,7 +308,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
       <v-card variant="elevated">
         <v-card-text class="finance-content">
           <div class="finance-heading">
-            <h2>ANÁLISIS RETORNO DE INVERSIÓN (ROI)</h2>
+            <h2>ANÁLISIS RETORNO SIMPLE ANUAL SOBRE LA INVERSIÓN</h2>
             <p>Captura las estimaciones mensuales para conocer la recuperación de tu inversión.</p>
           </div>
 
@@ -312,7 +316,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
             <v-text-field
               v-if="false"
               v-model.number="workingDaysPerMonth"
-              label="Producción mensual esperada"
+              label="Producción mensual estimada"
               min="0"
               suffix="unidades"
               type="number"
@@ -355,27 +359,48 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
                 type="number"
                 variant="outlined"
               />
-              <v-text-field
-                v-model.number="productionInputs[presentation.key].monthlyTarget"
-                density="comfortable"
-                hide-details
-                label="Producción mensual esperada"
-                min="0"
-                suffix="unid."
-                type="number"
-                variant="outlined"
-              />
-              <v-text-field
-                v-model.number="productionInputs[presentation.key].contributionPerUnit"
-                density="comfortable"
-                hide-details
-                label="Margen de contribucion / aportación por unidad"
-                min="0"
-                prefix="$"
-                :suffix="currencyCode"
-                type="number"
-                variant="outlined"
-              />
+              <v-tooltip
+                location="top"
+                open-on-hover
+                text="Volumen mensual que se espera procesar con el equipo"
+              >
+                <template #activator="{ props: tooltipProps }">
+                  <div v-bind="tooltipProps">
+                    <v-text-field
+                      v-model.number="productionInputs[presentation.key].monthlyTarget"
+                      density="comfortable"
+                      hide-details
+                      label="Producción mensual estimada"
+                      min="0"
+                      suffix="unid."
+                      type="number"
+                      variant="outlined"
+                    />
+                  </div>
+                </template>
+              </v-tooltip>
+              <v-tooltip
+                location="top"
+                open-on-click
+                open-on-hover
+                text="Monto disponible por cada unidad producida para recuperar la inversión o cubrir el pago del equipo."
+              >
+                <template #activator="{ props: tooltipProps }">
+                  <div v-bind="tooltipProps">
+                    <v-text-field
+                      v-model.number="productionInputs[presentation.key].contributionPerUnit"
+                      density="comfortable"
+                      hide-details
+                      label="Contribución estimada por unidad"
+                      min="0"
+                      prefix="$"
+                      :suffix="currencyCode"
+                      type="number"
+                      variant="outlined"
+                    />
+                  </div>
+                </template>
+              </v-tooltip>
             </div>
           </div>
 
@@ -486,30 +511,49 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
       <v-card variant="elevated">
         <v-card-text class="finance-content">
           <div class="finance-heading">
-            <h2>ANÁLISIS DE RETORNO DE INVERSIÓN (VERSIÓN ANTERIOR)</h2>
+            <h2>ANÁLISIS RETORNO SIMPLE ANUAL SOBRE LA INVERSIÓN (VERSIÓN ANTERIOR)</h2>
             <p>Captura una estimación global mensual para comparar este cálculo con el análisis por presentación.</p>
           </div>
 
           <div class="finance-controls finance-controls--roi">
-            <v-text-field
-              v-model.number="legacyExpectedMonthlyProduction"
-              label="Producción mensual esperada"
-              min="0"
-              suffix="unidades"
-              type="number"
-              variant="outlined"
-            />
-            <v-text-field
-              v-model.number="legacyContributionPerUnit"
-              hint="Cantidad disponible por unidad para recuperar la inversión."
-              label="Margen de contribución / aportación por unidad"
-              min="0"
-              persistent-hint
-              prefix="$"
-              :suffix="currencyCode"
-              type="number"
-              variant="outlined"
-            />
+            <v-tooltip
+              location="top"
+              open-on-hover
+              text="Volumen mensual que se espera procesar con el equipo"
+            >
+              <template #activator="{ props: tooltipProps }">
+                <div v-bind="tooltipProps">
+                  <v-text-field
+                    v-model.number="legacyExpectedMonthlyProduction"
+                    label="Producción mensual estimada"
+                    min="0"
+                    suffix="unidades"
+                    type="number"
+                    variant="outlined"
+                  />
+                </div>
+              </template>
+            </v-tooltip>
+            <v-tooltip
+              location="top"
+              open-on-click
+              open-on-hover
+              text="Monto disponible por cada unidad producida para recuperar la inversión o cubrir el pago del equipo."
+            >
+              <template #activator="{ props: tooltipProps }">
+                <div v-bind="tooltipProps">
+                  <v-text-field
+                    v-model.number="legacyContributionPerUnit"
+                    label="Contribución estimada por unidad"
+                    min="0"
+                    prefix="$"
+                    :suffix="currencyCode"
+                    type="number"
+                    variant="outlined"
+                  />
+                </div>
+              </template>
+            </v-tooltip>
           </div>
 
           <div class="roi-summary">

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { getQuotationInfo, getQuotationProducts } from '@/services/quotations'
+import { getQuotationEquipment, getQuotationInfo, getQuotationProducts } from '@/services/quotations'
 
 const props = defineProps({
   quotationId: { type: [Number, String], default: null },
@@ -16,8 +16,10 @@ const term = ref(12)
 const downPaymentPercent = ref(10)
 const monthlyPayment = ref(0)
 const products = ref([])
+const equipment = ref([])
 const productionInputs = ref({})
 const workingDaysPerMonth = ref(24)
+const recoveryTerm = ref(18)
 const legacyExpectedMonthlyProduction = ref(0)
 const legacyContributionPerUnit = ref(0)
 const financingTerms = [12, 18, 24, 36]
@@ -44,12 +46,22 @@ const truncateToTwoDecimals = (value) => Math.trunc(value * 100) / 100
 
 const discountPercentage = computed(() => Number(quotationInfo.value?.descuento) || 0)
 const discountAmount = computed(() => truncateToTwoDecimals(projectCost.value * (discountPercentage.value / 100)))
-const discountedProjectCost = computed(() => truncateToTwoDecimals(projectCost.value - discountAmount.value))
+const extrasCost = computed(() => {
+  const quotationExtras = Number(quotationInfo.value?.extras) || 0
+
+  return truncateToTwoDecimals(quotationExtras || equipment.value.reduce(
+    (total, item) => total + (Number(item.extras ?? item.extra) || 0),
+    0,
+  ))
+})
+const totalInvestment = computed(() => truncateToTwoDecimals(
+  projectCost.value - discountAmount.value + extrasCost.value,
+))
+const discountedProjectCost = computed(() => totalInvestment.value)
 const traditionalPayment = computed(() => truncateToTwoDecimals(discountedProjectCost.value / 2))
-const downPayment = computed(() => truncateToTwoDecimals(projectCost.value * (Number(downPaymentPercent.value) / 100)))
-const residualValue = computed(() => truncateToTwoDecimals(projectCost.value * 0.01))
-const financedAmount = computed(() => truncateToTwoDecimals(projectCost.value - downPayment.value - residualValue.value))
-const monthlyReturnOnInvestment = computed(() => truncateToTwoDecimals(monthlyContribution.value - monthlyPayment.value))
+const downPayment = computed(() => truncateToTwoDecimals(totalInvestment.value * (Number(downPaymentPercent.value) / 100)))
+const residualValue = computed(() => truncateToTwoDecimals(totalInvestment.value * 0.01))
+const financedAmount = computed(() => truncateToTwoDecimals(totalInvestment.value - downPayment.value))
 const productPresentations = computed(() => products.value.flatMap((product) =>
   (product.Presentacion ?? product.presentaciones ?? []).map((presentation) => ({
     key: `${product.idprod ?? product.id ?? 'product'}-${presentation.idpresen ?? presentation.id ?? presentation.presentacion}`,
@@ -65,6 +77,7 @@ const productionRows = computed(() => productPresentations.value.map((presentati
   const contributionPerUnit = Number(input.contributionPerUnit) || 0
   const dailyProduction = presentation.capacityPerMinute * 60 * hoursPerDay
   const requiredDays = dailyProduction > 0 ? monthlyTarget / dailyProduction : 0
+  const usagePercentage = workingDaysPerMonth.value > 0 ? (requiredDays / workingDaysPerMonth.value) * 100 : 0
 
   return {
     ...presentation,
@@ -73,6 +86,7 @@ const productionRows = computed(() => productPresentations.value.map((presentati
     contributionPerUnit,
     dailyProduction,
     requiredDays,
+    usagePercentage,
     monthlyContribution: monthlyTarget * contributionPerUnit,
   }
 }))
@@ -87,29 +101,54 @@ const monthlyContribution = computed(() => truncateToTwoDecimals(
 const annualContribution = computed(() => truncateToTwoDecimals(monthlyContribution.value * 12))
 const contributionDuringTerm = computed(() => truncateToTwoDecimals(monthlyContribution.value * (Number(term.value) || 0)))
 const roiPercentage = computed(() => (
-  projectCost.value > 0 ? (contributionDuringTerm.value / projectCost.value) * 100 : 0
+  totalInvestment.value > 0 ? (contributionDuringTerm.value / totalInvestment.value) * 100 : 0
 ))
 const recoveryMonths = computed(() => (
-  monthlyContribution.value > 0 ? truncateToTwoDecimals(projectCost.value / monthlyContribution.value) : null
+  monthlyContribution.value > 0 ? truncateToTwoDecimals(totalInvestment.value / monthlyContribution.value) : null
 ))
 const recoveryYears = computed(() => (
   recoveryMonths.value == null ? null : truncateToTwoDecimals(recoveryMonths.value / 12)
+))
+const fixedRecoveryRows = computed(() => productionRows.value.map((row) => {
+  const months = Number(recoveryTerm.value) || 0
+  const requiredContributionPerUnit = months > 0 && row.monthlyTarget > 0
+    ? totalInvestment.value / months / row.monthlyTarget
+    : 0
+
+  return {
+    ...row,
+    requiredContributionPerUnit,
+    recoveryMonthlyTotal: row.monthlyTarget * requiredContributionPerUnit,
+  }
+}))
+const fixedRecoveryMonthlyTotal = computed(() => truncateToTwoDecimals(
+  fixedRecoveryRows.value.reduce((total, row) => total + row.recoveryMonthlyTotal, 0),
+))
+const monthlyCashFlow = computed(() => truncateToTwoDecimals(fixedRecoveryMonthlyTotal.value - monthlyPayment.value))
+const cashFlowDuringTerm = computed(() => truncateToTwoDecimals(monthlyCashFlow.value * (Number(term.value) || 0)))
+const leaseRoiPercentage = computed(() => (
+  totalInvestment.value > 0 ? (cashFlowDuringTerm.value / totalInvestment.value) * 100 : 0
 ))
 const legacyMonthlyContribution = computed(() => truncateToTwoDecimals(
   Number(legacyExpectedMonthlyProduction.value || 0) * Number(legacyContributionPerUnit.value || 0),
 ))
 const legacyAnnualContribution = computed(() => truncateToTwoDecimals(legacyMonthlyContribution.value * 12))
 const legacyRoiPercentage = computed(() => (
-  projectCost.value > 0 ? (legacyAnnualContribution.value / projectCost.value) * 100 : 0
+  totalInvestment.value > 0 ? (legacyAnnualContribution.value / totalInvestment.value) * 100 : 0
 ))
 const legacyRecoveryMonths = computed(() => (
-  legacyMonthlyContribution.value > 0 ? truncateToTwoDecimals(projectCost.value / legacyMonthlyContribution.value) : null
+  legacyMonthlyContribution.value > 0 ? truncateToTwoDecimals(totalInvestment.value / legacyMonthlyContribution.value) : null
 ))
 const legacyRecoveryYears = computed(() => (
   legacyRecoveryMonths.value == null ? null : truncateToTwoDecimals(legacyRecoveryMonths.value / 12)
 ))
 const legacyMonthlyReturnOnInvestment = computed(() => truncateToTwoDecimals(
   legacyMonthlyContribution.value - monthlyPayment.value,
+))
+const legacyContributionPaymentRatio = computed(() => (
+  monthlyPayment.value > 0
+    ? legacyMonthlyContribution.value / monthlyPayment.value
+    : null
 ))
 /*const paymentBalance = computed(
   () => financedAmount.value - Number(monthlyPayment.value || 0) * Number(term.value || 0),
@@ -128,6 +167,7 @@ const loadFinancialData = async () => {
     quotationInfo.value = null
     prospectInfo.value = null
     products.value = []
+    equipment.value = []
     productionInputs.value = {}
     errorMessage.value = 'No fue posible identificar la cotización.'
     return
@@ -137,20 +177,22 @@ const loadFinancialData = async () => {
   errorMessage.value = ''
 
   try {
-    const [response, productsResponse] = await Promise.all([
+    const [response, productsResponse, equipmentResponse] = await Promise.all([
       getQuotationInfo(props.quotationId, { accessToken: props.accessToken }),
       getQuotationProducts(props.quotationId, { accessToken: props.accessToken }),
+      getQuotationEquipment(props.quotationId, { accessToken: props.accessToken }),
     ])
     quotationInfo.value = response?.quotation_info ?? null
     prospectInfo.value = response?.quotation_prospect_info ?? null
     projectCost.value = truncateToTwoDecimals(Number(response?.quotation_info?.costo ?? 0) - Number(response?.quotation_info?.extras ?? 0))
     products.value = Array.isArray(productsResponse) ? productsResponse : []
+    equipment.value = Array.isArray(equipmentResponse) ? equipmentResponse : []
     productionInputs.value = Object.fromEntries(productPresentations.value.map((presentation) => [
       presentation.key,
       { hoursPerDay: 0, monthlyTarget: 0, contributionPerUnit: 0 },
     ]))
 
-    if (!projectCost.value) {
+    if (!totalInvestment.value) {
       errorMessage.value = 'No fue posible obtener el valor del proyecto.'
     }
   } catch (error) {
@@ -158,6 +200,7 @@ const loadFinancialData = async () => {
     quotationInfo.value = null
     prospectInfo.value = null
     products.value = []
+    equipment.value = []
     productionInputs.value = {}
     errorMessage.value = error.message || 'No se pudo obtener el valor del proyecto.'
   } finally {
@@ -166,7 +209,7 @@ const loadFinancialData = async () => {
 }
 
 watch(() => [props.quotationId, props.accessToken], loadFinancialData, { immediate: true })
-watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
+watch([totalInvestment, term, downPaymentPercent], recalculateMonthlyPayment)
 </script>
 
 <template>
@@ -186,7 +229,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
 
       <div>
         <span class="finance-plans-note">
-            En Equitek contamos con <strong>planes de financiamiento</strong> mediante arrendamiento puro o leasing,
+            En Equitek contamos con <strong>planes de financiamiento</strong> mediante leasing,
             <strong>te ayudamos</strong> a diseñar un <strong>plan</strong> de acuerdo a tus necesidades, con un
             <strong>enganche mínimo</strong> y distintas <strong>opciones de plazo.</strong>
         </span>
@@ -212,7 +255,7 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               </v-col>
               <v-divider></v-divider>
               <v-col cols="3">
-                <span>${{ formatAmount(projectCost) }} {{ currencyCode }}</span>
+                <span>${{ formatAmount(totalInvestment) }} {{ currencyCode }}</span>
               </v-col>
               <v-col cols="3">
                 <span>-${{ formatAmount(discountAmount) }} {{ currencyCode }}</span>
@@ -305,35 +348,11 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
         </v-card-text>
       </v-card>
 
-      <v-card variant="elevated">
+      <!--<v-card variant="elevated">
         <v-card-text class="finance-content">
           <div class="finance-heading">
             <h2>ANÁLISIS RETORNO SIMPLE ANUAL SOBRE LA INVERSIÓN</h2>
             <p>Captura las estimaciones mensuales para conocer la recuperación de tu inversión.</p>
-          </div>
-
-          <div class="finance-controls finance-controls--roi">
-            <v-text-field
-              v-if="false"
-              v-model.number="workingDaysPerMonth"
-              label="Producción mensual estimada"
-              min="0"
-              suffix="unidades"
-              type="number"
-              variant="outlined"
-            />
-            <v-text-field
-              v-if="false"
-              v-model.number="workingDaysPerMonth"
-              hint="Cantidad que se dispone del precio total por unidad del producto para pago de inversión"
-              label="Margen de contribucion / Aportacion por unidad de producto"
-              min="0"
-              persistent-hint
-              prefix="$"
-              :suffix="currencyCode"
-              type="number"
-              variant="outlined"
-            />
           </div>
 
           <div class="production-inputs">
@@ -346,62 +365,6 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
               type="number"
               variant="outlined"
             />
-
-            <div v-for="presentation in productPresentations" :key="presentation.key" class="production-inputs__row">
-              <p>{{ presentation.product }} · {{ presentation.presentation }}</p>
-              <v-text-field
-                v-model.number="productionInputs[presentation.key].hoursPerDay"
-                density="comfortable"
-                hide-details
-                label="Horas diarias"
-                min="0"
-                suffix="h"
-                type="number"
-                variant="outlined"
-              />
-              <v-tooltip
-                location="top"
-                open-on-hover
-                text="Volumen mensual que se espera procesar con el equipo"
-              >
-                <template #activator="{ props: tooltipProps }">
-                  <div v-bind="tooltipProps">
-                    <v-text-field
-                      v-model.number="productionInputs[presentation.key].monthlyTarget"
-                      density="comfortable"
-                      hide-details
-                      label="Producción mensual estimada"
-                      min="0"
-                      suffix="unid."
-                      type="number"
-                      variant="outlined"
-                    />
-                  </div>
-                </template>
-              </v-tooltip>
-              <v-tooltip
-                location="top"
-                open-on-click
-                open-on-hover
-                text="Monto disponible por cada unidad producida para recuperar la inversión o cubrir el pago del equipo."
-              >
-                <template #activator="{ props: tooltipProps }">
-                  <div v-bind="tooltipProps">
-                    <v-text-field
-                      v-model.number="productionInputs[presentation.key].contributionPerUnit"
-                      density="comfortable"
-                      hide-details
-                      label="Contribución estimada por unidad"
-                      min="0"
-                      prefix="$"
-                      :suffix="currencyCode"
-                      type="number"
-                      variant="outlined"
-                    />
-                  </div>
-                </template>
-              </v-tooltip>
-            </div>
           </div>
 
           <v-alert v-if="!productionRows.length" type="info" variant="tonal">
@@ -415,51 +378,111 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
                   <th>Producto</th>
                   <th>Tamaño / presentación</th>
                   <th>Capacidad cotizada<br>(envases/min)</th>
+                  <th>Horas diarias disponibles</th>
+                  <th>Producción buscada mensual</th>
                   <th>Producción diaria</th>
                   <th>Días requeridos</th>
+                  <th>% aprovechamiento</th>
+                  <th>
+                    <v-tooltip location="top" text="Monto disponible por cada unidad producida para recuperar la inversión o cubrir el pago del equipo.">
+                      <template #activator="{ props: tooltipProps }">
+                        <span v-bind="tooltipProps">Contribución estimada por unidad</span>
+                      </template>
+                    </v-tooltip>
+                  </th>
                   <th>Contribución mensual</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="row in productionRows" :key="row.key">
-                  <td>{{ row.product }}</td>
+                  <td><strong>{{ row.product }}</strong></td>
                   <td>{{ row.presentation }}</td>
                   <td>{{ formatAmount(row.capacityPerMinute) }}</td>
+                  <td class="input-cell">
+                    <v-text-field v-model.number="productionInputs[row.key].hoursPerDay" density="compact" hide-details min="0" suffix="h" type="number" variant="outlined" />
+                  </td>
+                  <td class="input-cell">
+                    <v-text-field v-model.number="productionInputs[row.key].monthlyTarget" density="compact" hide-details min="0" suffix="unid." type="number" variant="outlined" />
+                  </td>
                   <td>{{ formatAmount(row.dailyProduction) }}</td>
                   <td>{{ row.requiredDays.toFixed(1) }}</td>
+                  <td>{{ row.usagePercentage.toFixed(2) }}%</td>
+                  <td class="input-cell">
+                    <v-text-field v-model.number="productionInputs[row.key].contributionPerUnit" density="compact" hide-details min="0" prefix="$" :suffix="currencyCode" type="number" variant="outlined" />
+                  </td>
                   <td>${{ formatAmount(row.monthlyContribution) }} {{ currencyCode }}</td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr>
-                  <th colspan="3">Total de días de producción requeridos</th>
-                  <th colspan="3">{{ totalRequiredDays.toFixed(1) }}</th>
-                  <!-- <th>Total</th>
-                  <th>${{ formatAmount(monthlyContribution) }} {{ currencyCode }}</th> -->
+                  <th colspan="7">Total de días de producción requeridos</th>
+                  <th colspan="2">{{ totalRequiredDays.toFixed(1) }}</th>
+                  <th>${{ formatAmount(monthlyContribution) }} {{ currencyCode }}</th>
                 </tr>
                 <tr>
-                  <th colspan="3">Porcentaje de uso</th>
+                  <th colspan="7">Porcentaje de aprovechamiento total</th>
                   <th colspan="3">{{ usagePercentage.toFixed(2) }}%</th>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <div class="roi-summary">
-            <div><span>Total de inversión</span><h3><strong>${{ formatAmount(projectCost) }} {{ currencyCode }}</strong></h3></div>
-            <div><span>Total anticipo</span><h3><strong>${{ formatAmount(downPayment) }} {{ currencyCode }}</strong></h3></div>
-            <div><span>Mensualidad</span><h3><strong>${{ formatAmount(monthlyPayment) }} {{ currencyCode }}</strong></h3></div>
-            <div><span>Contribución mensual</span><h3><strong>${{ formatAmount(monthlyContribution) }} {{ currencyCode }}</strong></h3></div>
-            <div><span>Contribución total en {{ term }} meses</span><h3><strong>${{ formatAmount(contributionDuringTerm) }} {{ currencyCode }}</strong></h3></div>
-            <div><span>ROI en periodo de arrendamiento</span><h3><strong>{{ roiPercentage.toFixed(2) }}%</strong></h3></div>
-            <div><span>ROI meses</span><h3><strong>{{ recoveryMonths == null ? '—' : recoveryMonths.toFixed(2) }}</strong></h3></div>
-            <div><span>Contribución mensual contra arrendamiento</span><h3><strong :class="{ 'monthly-roi-negative': monthlyReturnOnInvestment < 0, 'monthly-roi-positive': monthlyReturnOnInvestment > 0 }">${{ formatAmount(monthlyReturnOnInvestment) }} {{ currencyCode }}</strong></h3></div>
-          </div>
+          <section class="roi-section">
+            <div class="roi-section__heading">
+              <h3>Análisis de retorno de inversión con base a plazo fijo</h3>
+              <v-text-field v-model.number="recoveryTerm" class="recovery-term-input input-cell" density="comfortable" hide-details label="Plazo de recuperación" min="1" suffix="meses" type="number" variant="outlined" />
+            </div>
+            <div class="production-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Total de inversión</th>
+                    <th>Producto</th>
+                    <th>Tamaño / presentación</th>
+                    <th>Producción mensual</th>
+                    <th>Costo asociado por unidad para recuperación</th>
+                    <th>Total mensual</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in fixedRecoveryRows" :key="`recovery-${row.key}`">
+                    <td>${{ formatAmount(totalInvestment) }} {{ currencyCode }}</td>
+                    <td>{{ row.product }}</td>
+                    <td>{{ row.presentation }}</td>
+                    <td>{{ formatAmount(row.monthlyTarget) }}</td>
+                    <td>${{ formatAmount(row.requiredContributionPerUnit) }} {{ currencyCode }}</td>
+                    <td>${{ formatAmount(row.recoveryMonthlyTotal) }} {{ currencyCode }}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colspan="5">Total mensual</th>
+                    <th>${{ formatAmount(fixedRecoveryMonthlyTotal) }} {{ currencyCode }}</th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+
+          <section class="roi-section">
+            <h3>Análisis de flujo mensual generado con base a costo de financiamiento mensual</h3>
+            <div class="roi-summary">
+              <div><span>Total de inversión</span><strong>${{ formatAmount(totalInvestment) }} {{ currencyCode }}</strong></div>
+              <div><span>Anticipo</span><strong>{{ Number(downPaymentPercent) || 0 }}% · ${{ formatAmount(downPayment) }} {{ currencyCode }}</strong></div>
+              <div><span>Plazo financiamiento</span><strong>{{ term }} meses</strong></div>
+              <div><span>Mensualidad</span><strong>${{ formatAmount(monthlyPayment) }} {{ currencyCode }}</strong></div>
+              <div><span>Contribución mensual</span><strong>${{ formatAmount(fixedRecoveryMonthlyTotal) }} {{ currencyCode }}</strong></div>
+              <div><span>Flujo mensual</span><strong :class="{ 'monthly-roi-negative': monthlyCashFlow < 0, 'monthly-roi-positive': monthlyCashFlow > 0 }">${{ formatAmount(monthlyCashFlow) }} {{ currencyCode }}</strong></div>
+              <div><span>Contribución total en {{ term }} meses</span><strong>${{ formatAmount(cashFlowDuringTerm) }} {{ currencyCode }}</strong></div>
+              <div><span>ROI en periodo de arrendamiento</span><strong>{{ leaseRoiPercentage.toFixed(2) }}%</strong></div>
+              <div><span>ROI meses</span><strong>{{ recoveryMonths == null ? '—' : recoveryMonths.toFixed(2) }}</strong></div>
+            </div>
+          </section>
 
             <v-row v-if="false">
               <v-col cols="4">
                 <div>
-                  <h3>Inversión total: <strong>${{ formatAmount(projectCost) }} {{ currencyCode }}</strong></h3>
+                  <h3>Inversión total: <strong>${{ formatAmount(totalInvestment) }} {{ currencyCode }}</strong></h3>
                 </div>
               </v-col>
               <v-col cols="4">
@@ -490,28 +513,24 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
                     Contribución mensual contra arrendamiento mensual:
                     <strong
                       :class="{
-                        'monthly-roi-negative': monthlyReturnOnInvestment < 0,
-                        'monthly-roi-positive': monthlyReturnOnInvestment > 0,
+                        'monthly-roi-negative': monthlyCashFlow < 0,
+                        'monthly-roi-positive': monthlyCashFlow > 0,
                       }"
                     >
-                      ${{ formatAmount(monthlyReturnOnInvestment) }} {{ currencyCode }}
+                      ${{ formatAmount(monthlyCashFlow) }} {{ currencyCode }}
                     </strong>
                   </h3>
                 </div>
               </v-col>
             </v-row>
-            <!--<div>
-              <span>Recuperación del 100% de la inversión</span>
-              <strong>{{ recoveryYears == null ? 'Captura la producción y la aportación por unidad' : `${recoveryYears.toFixed(2)} años` }}</strong>
-            </div>-->
 
         </v-card-text>
-      </v-card>
+      </v-card>-->
 
       <v-card variant="elevated">
         <v-card-text class="finance-content">
           <div class="finance-heading">
-            <h2>ANÁLISIS RETORNO SIMPLE ANUAL SOBRE LA INVERSIÓN (VERSIÓN ANTERIOR)</h2>
+            <h2>ANÁLISIS RETORNO SIMPLE ANUAL SOBRE LA INVERSIÓN</h2>
             <p>Captura una estimación global mensual para comparar este cálculo con el análisis por presentación.</p>
           </div>
 
@@ -559,27 +578,30 @@ watch([projectCost, term, downPaymentPercent], recalculateMonthlyPayment)
           <div class="roi-summary">
             <div>
               <span>Inversión total</span>
-              <strong>${{ formatAmount(projectCost) }} {{ currencyCode }}</strong>
+              <strong>${{ formatAmount(totalInvestment) }} {{ currencyCode }}</strong>
             </div>
             <div>
-              <span>ROI anual estimado</span>
-              <strong>{{ legacyRoiPercentage.toFixed(2) }}%</strong>
-            </div>
-            <div>
-              <span>Recuperación estimada</span>
-              <strong>{{ legacyRecoveryMonths == null ? '—' : `${legacyRecoveryMonths.toFixed(1)} meses / ${legacyRecoveryYears.toFixed(2)} años` }}</strong>
-            </div>
-            <div>
-              <span>Margen de contribución mensual</span>
+              <span>Contribución mensual esperada</span>
               <strong>${{ formatAmount(legacyMonthlyContribution) }} {{ currencyCode }}</strong>
             </div>
             <div>
-              <span>Margen de contribución anual</span>
+              <span>Contribución anual esperada</span>
               <strong>${{ formatAmount(legacyAnnualContribution) }} {{ currencyCode }}</strong>
             </div>
             <div>
+              <span>Periodo simple de recuperación</span>
+              <strong>{{ legacyRecoveryMonths == null ? '—' : `${legacyRecoveryMonths.toFixed(1)} meses / ${legacyRecoveryYears.toFixed(2)} años` }}</strong>
+            </div>
+            <div>
+              <span>Retorno simple anual sobre la inversion</span>
+              <strong>{{ legacyRoiPercentage.toFixed(2) }}%</strong>
+            </div>
+            <div class="legacy-monthly-return">
               <span>Contribución mensual contra arrendamiento</span>
-              <strong :class="{ 'monthly-roi-negative': legacyMonthlyReturnOnInvestment < 0, 'monthly-roi-positive': legacyMonthlyReturnOnInvestment > 0 }">${{ formatAmount(legacyMonthlyReturnOnInvestment) }} {{ currencyCode }}</strong>
+              <strong :class="{ 'monthly-roi-negative': legacyMonthlyReturnOnInvestment < 0, 'monthly-roi-positive': legacyMonthlyReturnOnInvestment > 0 }">
+                ${{ formatAmount(legacyMonthlyReturnOnInvestment) }} {{ currencyCode }}
+                <span v-if="legacyContributionPaymentRatio !== null">· {{ legacyContributionPaymentRatio.toFixed(2) }}x (factor de arrendamiento)</span>
+              </strong>
             </div>
           </div>
         </v-card-text>
@@ -611,17 +633,22 @@ h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1
 .finance-controls--roi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .production-inputs { display: grid; gap: 16px; }
 .working-days-input { max-width: 260px; }
-.production-inputs__row { display: grid; grid-template-columns: minmax(180px, 1.25fr) repeat(3, minmax(150px, 1fr)); gap: 16px; align-items: center; }
-.production-inputs__row p { margin: 0; color: rgb(var(--v-theme-textPrimary)); font-weight: 700; }
 .production-table { overflow-x: auto; }
-.production-table table { width: 100%; min-width: 760px; border-collapse: collapse; }
+.production-table table { width: 100%; min-width: 980px; border-collapse: collapse; }
 .production-table th, .production-table td { border: 1px solid rgb(var(--v-theme-border)); padding: 8px; text-align: right; vertical-align: middle; }
 .production-table th { background: rgb(var(--v-theme-surfaceVariant)); color: rgb(var(--v-theme-textPrimary)); font-size: .78rem; line-height: 1.25; }
 .production-table td:first-child, .production-table td:nth-child(2), .production-table th:first-child, .production-table th:nth-child(2) { text-align: left; }
 .production-table tfoot th { font-weight: 800; }
 .production-table :deep(.v-input) { min-width: 110px; }
+.roi-section { display: grid; gap: 14px; }
+.roi-section > h3, .roi-section__heading h3 { margin: 0; color: rgb(var(--v-theme-primary)); font-size: 1rem; text-transform: uppercase; }
+.roi-section__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.recovery-term-input { width: min(100%, 260px); }
 .roi-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
 .roi-summary > div { display: grid; gap: 4px; padding: 14px; border-radius: 8px; background: rgb(var(--v-theme-surfaceVariant)); }
+.legacy-monthly-return { grid-column: 1 / -1; border-top: 1px solid rgb(var(--v-theme-border)); margin-top: 4px; padding-top: 20px !important; }
+.roi-summary > .legacy-monthly-return { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.legacy-monthly-return span, .legacy-monthly-return strong { white-space: nowrap; }
 .roi-summary span { color: rgb(var(--v-theme-textMuted)); font-size: .85rem; }
 .roi-summary strong { color: rgb(var(--v-theme-textPrimary)); font-size: 1.05rem; }
 .monthly-roi-negative { color: rgb(var(--v-theme-error)); }
@@ -635,7 +662,9 @@ h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1
   .finance-content { gap: 20px; }
   .finance-controls { grid-template-columns: 1fr; gap: 4px; }
   .finance-controls--roi { grid-template-columns: 1fr; }
-  .production-inputs__row { grid-template-columns: 1fr; gap: 8px; }
+  .roi-section__heading { align-items: stretch; flex-direction: column; }
+  .recovery-term-input { width: 100%; }
+  .legacy-monthly-return { grid-column: auto; }
   .finance-benefits { grid-template-columns: 1fr; gap: 8px; }
   .equipment-image { margin: 20px auto 14px; }
   .finance-plans-note { font-size: .84rem; }

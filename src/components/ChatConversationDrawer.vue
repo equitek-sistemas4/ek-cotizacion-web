@@ -187,7 +187,7 @@ const loadConversation = async () => {
       ? await getChatMessagesWpp({ accessToken: props.accessToken, phone_number: chat.phone_number })
       : await getChatMessages(chat.id)
     const detail = chat.channel === 'whatsapp' ? chat : await getChatById(chat.id)
-    conversationChat.value = { ...chat, ...(detail ?? {}) }
+    conversationChat.value = { ...chat, ...detail }
     const list = Array.isArray(messagesData) ? messagesData : messagesData?.messages ?? []
     messages.value = list.map(normalizeMessage)
     // El panel muestra el estado de carga mientras se obtiene la conversación;

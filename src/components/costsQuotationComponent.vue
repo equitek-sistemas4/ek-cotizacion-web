@@ -282,7 +282,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
           </tbody>
         </v-table>
       </v-card>
-      <p class="quotation-note">* Los precios mostrados son una referencia comercial y podrán confirmarse o ajustarse por EQUITEK de acuerdo con la configuración y alcance final de cada proyecto.</p>
+      <p class="quotation-note">* Los precios cotizados son de carácter informativo y podrían variar si cambia el alcance del proyecto, esta cotización se formalizará en cuanto se validen dichos alcances.</p>
 
       <section class="conditions-section">
         <h2>Condiciones comerciales</h2>

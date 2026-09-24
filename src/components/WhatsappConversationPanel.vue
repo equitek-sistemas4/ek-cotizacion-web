@@ -117,13 +117,17 @@ const connectSocket = () => {
   chatSocket.onmessage = async (event) => {
     try {
       const payload = JSON.parse(event.data)
-      const message = normalizeMessage(payload?.message ?? payload?.data?.message ?? payload)
-      if (message.id && !messages.value.some((current) => String(current.id) === String(message.id))) {
-        messages.value.push(message)
-        await scrollToBottom()
-      }
-    } catch {
-      // Los eventos no relacionados con mensajes se ignoran.
+      console.debug('[WhatsApp WS] payload recibido:', payload)
+
+      if (payload?.type !== 'whatsapp_message' || !payload.data) return
+
+      const message = normalizeMessage(payload.data)
+      if (!message.id || messages.value.some((current) => String(current.id) === String(message.id))) return
+
+      messages.value = [...messages.value, message]
+      await scrollToBottom()
+    } catch (requestError) {
+      console.error('[WhatsApp WS] frame inválido:', requestError)
     }
   }
   chatSocket.onclose = () => {

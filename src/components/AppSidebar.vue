@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from 'vuetify'
 import { getUnreadNotifications, readNotifications } from '@/services/notifications'
 import { useAuthStore } from '@/stores/auth'
-import logoImg from '@/assets/logo.png'
+import logoImg from '@/assets/ek-logo.png'
 
 const router = useRouter()
 const route = useRoute()
@@ -142,7 +142,7 @@ onBeforeUnmount(() => {
   >
     <div class="sidebar-content">
       <div class="brand-section">
-        <v-avatar class="brand-logo" color="primary" rounded="lg" size="40">
+        <v-avatar class="brand-logo" rounded="lg" size="40">
           <v-img v-if="logoUrl" :src="logoUrl" alt="Equitek" cover />
           <span v-else>EQ</span>
         </v-avatar>
@@ -158,6 +158,15 @@ onBeforeUnmount(() => {
         variant="text"
         @click="collapsed = !collapsed"
       />
+
+      <div v-if="!collapsed" class="user-identity">
+        <div class="user-identity__icon">
+          <v-icon icon="mdi-account-circle" size="26" />
+        </div>
+        <span class="user-identity__name">{{ loggedUserName }}</span>
+      </div>
+
+      <br>
 
       <v-list class="nav-list" density="compact" nav>
         <v-list-item
@@ -183,26 +192,19 @@ onBeforeUnmount(() => {
 
       <v-spacer />
 
+      
+
       <v-list class="logout-list" density="compact" nav>
-        <v-tooltip :text="themeToggleLabel" location="end">
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              color="primary"
-              :prepend-icon="isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night'"
-              rounded="lg"
-              :title="collapsed ? undefined : themeToggleLabel"
-              @click="toggleTheme"
-            />
-          </template>
-        </v-tooltip>
         <v-list-item
-          v-if="!collapsed"
-          :title="loggedUserName"
-          prepend-icon="mdi-account-circle"
+          class="utility-item theme-item"
+          color="primary"
+          :prepend-icon="isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night'"
           rounded="lg"
+          :title="collapsed ? undefined : themeToggleLabel"
+          @click="toggleTheme"
         />
         <v-list-item
+          class="utility-item logout-item"
           color="primary"
           prepend-icon="mdi-logout"
           rounded="lg"
@@ -240,6 +242,13 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
+.app-sidebar,
+.brand-name,
+.nav-list,
+.logout-list {
+  font-family: 'Roboto', 'Helvetica Neue', sans-serif;
+}
+
 .brand-name {
   color: rgb(var(--v-theme-textPrimary));
   font-size: 1.15rem;
@@ -254,5 +263,96 @@ onBeforeUnmount(() => {
 .nav-list,
 .logout-list {
   padding: 0;
+}
+
+.nav-list :deep(.v-list-item) {
+  border-radius: 14px;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.nav-list :deep(.v-list-item:hover) {
+  background: rgba(var(--v-theme-primary), 0.08);
+  transform: translateX(2px);
+  box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.08);
+}
+
+.nav-list :deep(.v-list-item-title),
+.logout-list :deep(.v-list-item-title) {
+  font-family: 'Roboto', 'Helvetica Neue', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.user-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  margin: 4px 0 8px;
+  border: 1px solid rgba(var(--v-theme-border), 0.8);
+  border-radius: 14px;
+  background: rgba(var(--v-theme-primary), 0.02);
+  color: rgb(var(--v-theme-textPrimary));
+  cursor: default;
+  user-select: none;
+}
+
+.user-identity__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: rgba(var(--v-theme-primary), 0.06);
+  color: rgb(var(--v-theme-primary));
+}
+
+.user-identity__name {
+  overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.utility-item {
+  margin: 4px 0;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.utility-item:hover {
+  background: rgba(var(--v-theme-primary), 0.06);
+}
+
+.theme-item,
+.logout-item {
+  border: 1px solid rgba(var(--v-theme-border), 0.8);
+}
+
+.theme-item {
+  background: rgba(var(--v-theme-primary), 0.04);
+}
+
+.logout-item {
+  background: rgba(var(--v-theme-secondary), 0.08);
+  border-color: rgba(var(--v-theme-secondary), 0.2);
+  color: rgb(var(--v-theme-secondary));
+}
+
+.logout-item :deep(.v-list-item-title),
+.logout-item :deep(.v-list-item__prepend) {
+  color: rgb(var(--v-theme-secondary));
+}
+
+.logout-item:hover {
+  background: rgba(var(--v-theme-secondary), 0.12);
 }
 </style>

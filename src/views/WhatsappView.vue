@@ -161,24 +161,32 @@ onMounted(async () => {
 .whatsapp-shell { 
   display: grid; 
   grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); 
-  gap: 16px; 
-
+  gap: 0;
   height: calc(100vh - 48px); 
   margin: 0 auto; 
   background: transparent; 
+  border-radius: 20px;
+  overflow: hidden;
 }
 .chat-sidebar, .conversation-panel { 
   min-width: 0; 
-  border: 1px solid rgb(var(--v-theme-border)); 
-  border-radius: 8px; 
   background: rgb(var(--v-theme-surface)); 
 }
-.chat-sidebar { 
-  position: relative; 
-  display: flex; 
-  flex-direction: column; 
-  padding: 20px; 
-  overflow: hidden; 
+.chat-sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid rgb(var(--v-theme-border));
+  border-right: 1px solid rgba(var(--v-theme-border), 0.9);
+  border-radius: 20px 0 0 20px;
+}
+.conversation-panel {
+  overflow: hidden;
+  border: 1px solid rgb(var(--v-theme-border));
+  border-left: 1px solid rgba(var(--v-theme-border), 0.9);
+  border-radius: 0 20px 20px 0;
 }
 .sidebar-header h1, .sidebar-header p { 
   margin: 0; 

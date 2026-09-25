@@ -36,6 +36,7 @@ const messageSearchLoading = ref(false)
 const matchingMessageIds = ref(new Set())
 const selectedMatchIndex = ref(-1)
 const infoChatMembersKey = ref(0)
+const infoChatMembersOpen = ref(false)
 const messageElementRefs = new Map()
 
 const activeChat = computed(() => conversationChat.value ?? props.chat)
@@ -315,6 +316,17 @@ onBeforeUnmount(closeSocket)
 <template>
   <v-btn
     v-if="chat && !isOpen"
+    class="info-chat-fab"
+    color="primary"
+    size="large"
+    @click="infoChatMembersOpen = true"
+  >
+    <span class="info-chat-fab__label">información del chat</span>
+    <v-icon icon="mdi-information-outline" />
+  </v-btn>
+
+  <v-btn
+    v-if="chat && !isOpen"
     class="chat-fab"
     color="secondary"
     append-icon="mdi-message-text"
@@ -323,6 +335,16 @@ onBeforeUnmount(closeSocket)
   >
     Chat
   </v-btn>
+
+  <info-chat-members
+    v-if="activeChat?.id"
+    v-model="infoChatMembersOpen"
+    :key="`info-chat-members-${activeChat.id}`"
+    :chat-id="activeChat.id"
+    :access-token="props.accessToken"
+    :show-activator="false"
+    @chat-deleted="emit('chat-deleted')"
+  />
 
   <v-navigation-drawer v-model="isOpen" class="chat-drawer" location="right" temporary width="800">
     <section class="chat-content">
@@ -349,12 +371,32 @@ onBeforeUnmount(closeSocket)
       </header>
 
       <div ref="messagesPanel" class="messages-panel">
-        <div v-if="loading" class="chat-state"><v-progress-circular color="primary" indeterminate size="30" /><span>Cargando mensajes...</span></div>
-        <div v-else-if="error" class="chat-state chat-state-error"><v-icon color="error" icon="mdi-alert-circle-outline" size="34" /><span>{{ error }}</span></div>
-        <div v-else-if="!messages.length" class="chat-state"><v-icon color="primary" icon="mdi-message-text-outline" size="34" /><span>No hay mensajes en esta conversación.</span></div>
+        <div v-if="loading" class="chat-state">
+          <v-progress-circular color="primary" indeterminate size="30" />
+          <span>Cargando mensajes...</span>
+        </div>
+        <div v-else-if="error" class="chat-state chat-state-error">
+          <v-icon color="error" icon="mdi-alert-circle-outline" size="34" />
+          <span>{{ error }}</span>
+        </div>
+        <div v-else-if="!messages.length" class="chat-state">
+          <v-icon color="primary" icon="mdi-message-text-outline" size="34" />
+          <span>No hay mensajes en esta conversación.</span>
+        </div>
         <template v-else>
           <div v-for="item in messages" :key="item.id" :ref="(element) => setMessageElement(item.id, element)" class="message-row" :class="{ 'message-row-sent': item.fromMe, 'message-row-search-match': matchingMessageIds.has(String(item.id)), 'message-row-search-active': String(item.id) === String(activeMatchingMessageId) }">
-            <div class="message-bubble"><small>{{ item.senderName }}</small><p>{{ item.text }}</p><div v-if="item.files.length" class="message-attachments"><div v-for="file in item.files" :key="`${file.name}-${file.url}`" class="message-attachment"><img v-if="file.isImage && file.url" :alt="file.name" class="attachment-image-preview" :src="file.url" /><v-icon v-else color="error" icon="mdi-file-pdf-box" size="42" /><v-btn :disabled="!file.url" :download="file.name" :href="file.url || undefined" icon="mdi-download" size="small" target="_blank" variant="text" /></div></div><span>{{ item.time }}</span></div>
+            <div class="message-bubble">
+              <small>{{ item.senderName }}</small>
+              <p>{{ item.text }}</p>
+              <div v-if="item.files.length" class="message-attachments">
+                <div v-for="file in item.files" :key="`${file.name}-${file.url}`" class="message-attachment">
+                  <img v-if="file.isImage && file.url" :alt="file.name" class="attachment-image-preview" :src="file.url" />
+                  <v-icon v-else color="error" icon="mdi-file-pdf-box" size="42" />
+                  <v-btn :disabled="!file.url" :download="file.name" :href="file.url || undefined" icon="mdi-download" size="small" target="_blank" variant="text" />
+                </div>
+              </div>
+              <span>{{ item.time }}</span>
+            </div>
           </div>
         </template>
       </div>
@@ -372,7 +414,44 @@ onBeforeUnmount(closeSocket)
 </template>
 
 <style scoped>
-.chat-fab { position: fixed; right: 24px; bottom: 24px; z-index: 20; }
+.chat-fab { background: rgb(var(--v-theme-secondary)) !important; color: rgb(var(--v-theme-surface)) !important; position: fixed; right: 24px; bottom: 24px; z-index: 20; }
+.info-chat-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  z-index: 21;
+  overflow: hidden;
+  min-width: 56px;
+  max-width: 56px;
+  transition: max-width 0.25s ease, min-width 0.25s ease, padding 0.25s ease;
+}
+.info-chat-fab:hover {
+  min-width: 220px;
+  max-width: 220px;
+}
+.info-chat-fab :deep(.v-btn__content) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  white-space: nowrap;
+}
+.info-chat-fab__label {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: max-width 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+}
+.info-chat-fab:hover .info-chat-fab__label {
+  max-width: 170px;
+  opacity: 1;
+  margin-right: 4px;
+}
 .chat-drawer { width: min(100vw, 800px) !important; }
 .chat-drawer :deep(.v-navigation-drawer__content) { height: 100%; }
 .chat-content { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: 100%; height: 100%; overflow: hidden; background: rgb(var(--v-theme-surface)); }
@@ -406,5 +485,5 @@ onBeforeUnmount(closeSocket)
 .attachment-input { display: none; }
 .attachment-preview, .send-message-error { display: flex; flex: 0 0 100%; align-items: center; gap: 6px; }
 .attachment-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 600px) { .chat-fab { right: 16px; bottom: 16px; } .conversation-header { padding: 10px; } .message-search { width: 130px; } .messages-panel { padding: 12px; } }
+@media (max-width: 600px) { .chat-fab { right: 16px; bottom: 16px; } .info-chat-fab { right: 16px; bottom: 84px; } .conversation-header { padding: 10px; } .message-search { width: 130px; } .messages-panel { padding: 12px; } }
 </style>

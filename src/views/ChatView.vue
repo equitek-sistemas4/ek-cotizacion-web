@@ -150,14 +150,23 @@ onMounted(async () => {
           clearable 
           density="compact" 
           hide-details 
-          placeholder="Buscar chat" 
+          placeholder="Buscar cotizacion" 
           prepend-inner-icon="mdi-magnify" 
           variant="outlined" 
           @update:model-value="(value) => fetchChats({ search: value ?? '' })" 
         />
-        <div v-if="chatsLoading" class="chat-state"><v-progress-circular color="primary" indeterminate size="28" /><span>Cargando chats...</span></div>
-        <div v-else-if="chatsError" class="chat-state chat-state-error"><v-icon color="error" icon="mdi-alert-circle-outline" /><span>{{ chatsError }}</span></div>
-        <div v-else-if="!chats.length" class="chat-state"><v-icon color="primary" icon="mdi-message-outline" /><span>No hay chats disponibles.</span></div>
+        <div v-if="chatsLoading" class="chat-state">
+          <v-progress-circular color="primary" indeterminate size="28" />
+          <span>Cargando chats...</span>
+        </div>
+        <div v-else-if="chatsError" class="chat-state chat-state-error">
+          <v-icon color="error" icon="mdi-alert-circle-outline" />
+          <span>{{ chatsError }}</span>
+        </div>
+        <div v-else-if="!chats.length" class="chat-state">
+          <v-icon color="primary" icon="mdi-message-outline" />
+          <span>No hay chats disponibles.</span>
+        </div>
         <v-list v-else class="chat-list" lines="two">
           <v-list-item v-for="chat in chats" :key="chat.id" :active="String(chat.id) === String(selectedChatId)" active-color="primary" class="chat-list-item" rounded="lg" @click="selectChat(chat.id)">
             <template #prepend>
@@ -199,14 +208,29 @@ onMounted(async () => {
 .chat-shell { 
   display: grid; 
   grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
-  gap: 16px; 
-  
+  gap: 0;
   height: calc(100vh - 48px); 
   margin: 0 auto; 
   background: transparent; 
+  border-radius: 20px;
+  overflow: hidden;
 }
-.chat-sidebar, .quotation-panel { min-width: 0; border: 1px solid rgb(var(--v-theme-border)); border-radius: 8px; background: rgb(var(--v-theme-surface)); }
-.chat-sidebar { position: relative; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
+.chat-sidebar, .quotation-panel { min-width: 0; background: rgb(var(--v-theme-surface)); }
+.chat-sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid rgb(var(--v-theme-border));
+  border-right: 1px solid rgba(var(--v-theme-border), 0.9);
+  border-radius: 20px 0 0 20px;
+}
+.quotation-panel {
+  border: 1px solid rgb(var(--v-theme-border));
+  border-left: 1px solid rgba(var(--v-theme-border), 0.9);
+  border-radius: 0 20px 20px 0;
+}
 .sidebar-header { 
   display: flex; 
   align-items: center; 

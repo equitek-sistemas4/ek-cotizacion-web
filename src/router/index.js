@@ -81,7 +81,7 @@ const router = createRouter({
       component: () => import('../views/QuotationEventsView.vue'),
       meta: {
         icon: 'mdi-chart-timeline-variant',
-        navLabel: 'Actividad de cotizaciones',
+        navLabel: 'Actividad cotizaciones',
         showInNav: true,
       },
     },

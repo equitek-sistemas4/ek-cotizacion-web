@@ -246,6 +246,12 @@ const viewQuotation = () => {
 }
 
 watch(() => props.chatId, loadChat, { immediate: true })
+
+watch(dialog, async (isOpen) => {
+  if (isOpen && props.chatId) {
+    await loadChat()
+  }
+}, { immediate: true })
 </script>
 
 <template>
@@ -264,7 +270,7 @@ watch(() => props.chatId, loadChat, { immediate: true })
             </template>
 
             <v-card class="info-chat-card" elevation="0">
-                <v-card-text>
+                <v-card-text class="info-chat-card-body">
                 <div v-if="loading" class="info-chat-state">
                     <v-progress-circular color="primary" indeterminate size="28" />
                     <span>Cargando informacion del chat...</span>
@@ -282,31 +288,26 @@ watch(() => props.chatId, loadChat, { immediate: true })
 
                 <div v-else class="info-chat-content">
                     <header class="info-chat-header">
-                      <v-avatar color="primary" size="44">
-                          <span>{{ chat.name?.charAt(0) || 'C' }}</span>
-                      </v-avatar>
+                      <div class="info-chat-avatar-wrap">
+                        <v-avatar color="primary" size="48">
+                            <span>{{ chat.name?.charAt(0) || 'C' }}</span>
+                        </v-avatar>
+                      </div>
 
                       <div class="info-chat-header-details">
-                          <p>Chat #{{ chat.id }}</p>
-                          <h2>{{ chat.name }} #{{ chat.quotation_id }} <small> - {{ chat.description }}</small></h2>
+                          <div class="info-chat-kicker-row">
+                            <span class="info-chat-label">Chat</span>
+                            <span class="info-chat-id">#{{ chat.id }}</span>
+                          </div>
+                          <h2>{{ chat.name }} - <span v-if="chat.quotation_id">Cotización #{{ chat.quotation_id }}</span></h2>
+                          <div class="info-chat-company-row" v-if="chat.company || chat.quotation_id || chat.description">
+                            <span v-if="chat.company">{{ chat.company }}</span>
+                            <span v-if="chat.description">{{ chat.description }}</span>
+                          </div>
                           <small>Creado: {{ formatDate(chat.created_at) }}</small>
                       </div>
 
                       <v-spacer />
-
-                      <!--<v-tooltip text="Ver cotización">
-                        <template #activator="{ props: tooltipProps }">
-                          <v-btn
-                            v-if="!hideMemberLinkActions"
-                            aria-label="Ver cotización"
-                            color="primary"
-                            icon="mdi-eye"
-                            variant="text"
-                            v-bind="tooltipProps"
-                            @click="viewQuotation"
-                          />
-                        </template>
-                      </v-tooltip>-->
 
                       <v-tooltip v-if="showDeleteChat" text="Eliminar chat">
                         <template #activator="{ props: tooltipProps }">
@@ -314,7 +315,8 @@ watch(() => props.chatId, loadChat, { immediate: true })
                             aria-label="Eliminar chat"
                             color="error"
                             icon="mdi-delete"
-                            variant="text"
+                            variant="tonal"
+                            class="header-action-btn"
                             v-bind="tooltipProps"
                             @click="removeChatDialog = true"
                           />
@@ -322,42 +324,58 @@ watch(() => props.chatId, loadChat, { immediate: true })
                       </v-tooltip>
                     </header>
 
-                    <v-divider />
-
-                    <section>
-                    <div class="members-heading">
-                        <h3>Miembros</h3>
-                        <v-chip color="primary" size="small" variant="tonal">
-                        {{ members.length }}
-                        </v-chip>
+                    <div class="info-chat-summary">
+                      <v-chip color="primary" variant="tonal" size="small">
+                        {{ members.length }} miembros
+                      </v-chip>
                     </div>
 
-                    <div v-if="!members.length" class="info-chat-state">
+                    <section class="members-panel">
+                    <div class="members-heading">
+                        <h3>Miembros</h3>
+                    </div>
+
+                    <div v-if="!members.length" class="info-chat-state info-chat-empty-members">
                         <v-icon color="primary" icon="mdi-account-group-outline" />
                         <span>Este chat no tiene miembros.</span>
                     </div>
 
                     <v-list v-else class="members-list" density="comfortable">
-                        <v-list-item v-for="member in members" :key="member.id" rounded="lg">
+                        <v-list-item v-for="member in members" :key="member.id" rounded="lg" class="member-list-item">
                         <template #prepend>
-                            <v-avatar color="secondary" size="36">
+                            <v-avatar color="secondary" size="38">
                             <span>{{ (member.contact?.display_name || member.contact_name || 'M').charAt(0) }}</span>
                             </v-avatar>
                         </template>
 
-                        <v-list-item-title>
-                            {{ member.contact?.display_name || member.contact_name || 'Sin nombre' }}
-                        </v-list-item-title>
+                        <div class="member-card-header">
+                            <div class="member-card-main">
+                                <v-list-item-title class="member-name">
+                                    {{ member.contact?.display_name || member.contact_name || 'Sin nombre' }}
+                                </v-list-item-title>
 
-                        <v-list-item-subtitle>
-                            {{ member.contact?.company || 'Sin empresa' }} - {{ member.contact?.position ? `(${member.contact.position})` : '' }}
-                            <span v-if="member.contact?.phone_number"> · {{ member.contact.phone_number }}</span>
-                        </v-list-item-subtitle>
+                                <v-list-item-subtitle class="member-subtitle">
+                                    <span>{{ member.contact?.company || 'Sin empresa' }}</span>
+                                    <span v-if="member.contact?.position"> · {{ member.contact.position }}</span>
+                                    <span v-if="member.contact?.phone_number"> · {{ member.contact.phone_number }}</span>
+                                </v-list-item-subtitle>
+                            </div>
+
+                            <v-btn
+                                aria-label="Eliminar participante de chat"
+                                color="error"
+                                icon="mdi-delete-outline"
+                                size="x-small"
+                                variant="tonal"
+                                class="member-delete-btn"
+                                @click.stop="requestMemberRemoval(member)"
+                            />
+                        </div>
 
                         <div v-if="!hideMemberLinkActions" class="member-url">
                             <span class="member-url-text">{{ getMemberUrl(member) || 'URL no disponible' }}</span>
                             <div class="member-url-actions">
-                                <v-tooltip text="enviar por WhatsApp">
+                                <v-tooltip text="Enviar por WhatsApp">
                                     <template #activator="{ props: tooltipProps }">
                                         <v-btn
                                             aria-label="Enviar URL por WhatsApp"
@@ -366,7 +384,7 @@ watch(() => props.chatId, loadChat, { immediate: true })
                                             :disabled="!getMemberUrl(member) || !member.contact?.phone_number"
                                             :loading="sendingWhatsappMemberId === member.id"
                                             size="x-small"
-                                            variant="text"
+                                            variant="tonal"
                                             v-bind="tooltipProps"
                                             @click.stop="sendMemberUrlByWhatsapp(member)"
                                         />
@@ -377,16 +395,8 @@ watch(() => props.chatId, loadChat, { immediate: true })
                                     :color="copiedMemberId === member.id ? 'success' : 'primary'"
                                     :icon="copiedMemberId === member.id ? 'mdi-check' : 'mdi-content-copy'"
                                     size="x-small"
-                                    variant="text"
+                                    variant="tonal"
                                     @click.stop="copyMemberUrl(member)"
-                                />
-                                <v-btn
-                                    aria-label="Eliminar participante de chat"
-                                    color="error"
-                                    icon="mdi-delete-outline"
-                                    size="x-small"
-                                    variant="text"
-                                    @click.stop="requestMemberRemoval(member)"
                                 />
                             </div>
                         </div>
@@ -437,9 +447,15 @@ watch(() => props.chatId, loadChat, { immediate: true })
 
 <style scoped>
 .info-chat-card {
-  border: 1px solid rgb(var(--v-theme-border));
-  border-radius: 8px;
+  border: 1px solid rgba(var(--v-border-color), 0.2);
+  border-radius: 20px;
   background: rgb(var(--v-theme-surface));
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.info-chat-card-body {
+  padding: 16px 16px 14px;
 }
 
 .info-chat-state {
@@ -448,7 +464,7 @@ watch(() => props.chatId, loadChat, { immediate: true })
   gap: 10px;
   min-height: 120px;
   color: rgb(var(--v-theme-textMuted));
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   text-align: center;
 }
 
@@ -458,30 +474,88 @@ watch(() => props.chatId, loadChat, { immediate: true })
 
 .info-chat-content {
   display: grid;
-  gap: 16px;
+  gap: 10px;
 }
 
 .info-chat-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
+  padding: 4px 2px 0;
+}
+
+.info-chat-avatar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 16px;
 }
 
 .info-chat-header-details {
-  min-width: 0;
+  min-width: 500px;
+  flex: 1;
+  color: rgb(var(--v-theme-textPrimary));
 }
 
-.info-chat-header span,
-.members-list :deep(.v-avatar span) {
-  color: rgb(var(--v-theme-surface));
+.info-chat-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.info-chat-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.info-chat-id {
+  color: rgb(var(--v-theme-textMuted));
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
-.info-chat-header p,
-.info-chat-header small {
-  margin: 0;
+.info-chat-header small,
+.info-chat-meta-row,
+.member-date,
+.member-subtitle {
   color: rgb(var(--v-theme-textMuted));
-  font-size: 0.82rem;
+}
+
+.info-chat-header small {
+  color: rgb(var(--v-theme-textMuted));
+  font-weight: 600;
+}
+
+.info-chat-header small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+}
+
+.info-chat-company-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: rgb(var(--v-theme-textMuted));
+  font-weight: 600;
+}
+
+.info-chat-avatar-wrap .v-avatar span,
+.members-list :deep(.v-avatar span) {
+  color: rgb(var(--v-theme-on-primary));
+  font-weight: 700;
 }
 
 h2,
@@ -492,11 +566,29 @@ h3 {
 }
 
 h2 {
-  font-size: 1.12rem;
+  font-size: clamp(1.15rem, 1.5vw, 1.45rem);
+  letter-spacing: -0.02em;
 }
 
 h3 {
-  font-size: 0.98rem;
+  font-size: 1rem;
+}
+
+.header-action-btn {
+  border-radius: 12px;
+}
+
+.info-chat-summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 0;
+  margin-top: -2px;
+}
+
+.members-panel {
+  background: rgb(var(--v-theme-surface));
+  padding: 14px;
 }
 
 .members-heading {
@@ -509,21 +601,71 @@ h3 {
 
 .members-list {
   padding: 0;
+  background: transparent;
+}
+
+.member-list-item {
+  position: relative;
+  border: 1px solid rgba(var(--v-border-color), 0.08);
+  border-radius: 14px;
+  margin-bottom: 8px;
+  padding: 2px 0;
+  background: rgba(var(--v-theme-surface), 0.5);
+}
+
+.member-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding-right: 36px;
+}
+
+.member-card-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.member-name {
+  color: rgb(var(--v-theme-textPrimary));
+  font-weight: 700;
+}
+
+.member-subtitle {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.member-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  flex-shrink: 0;
+  margin-top: 0;
 }
 
 .member-date {
-  color: rgb(var(--v-theme-textMuted));
-  font-size: 0.76rem;
+  font-size: 0.74rem;
+  white-space: nowrap;
 }
 
 .member-url {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(var(--v-theme-primary), 0.04);
+  border: 1px solid rgba(var(--v-theme-primary), 0.08);
+  border-radius: 10px;
   color: rgb(var(--v-theme-textMuted));
-  font-size: 0.76rem;
+  font-size: 0.75rem;
 }
 
 .member-url-text {
@@ -535,8 +677,14 @@ h3 {
 }
 
 .member-url-actions {
+  display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-left: auto;
+}
+
+.info-chat-empty-members {
+  min-height: 90px;
+  padding: 10px 0;
 }
 </style>

@@ -26,7 +26,7 @@
           class="contacts-table elevation-0"
           style="padding: 10px;"
         >
-          <!--<template v-slot:item.actions="{ item }">
+          <template v-slot:item.actions="{ item }">
             <div class="d-flex gap-2">
               <dialogEditContact
                 ref="editDialogRef"
@@ -54,7 +54,7 @@
                 title="Eliminar"
               />
             </div>
-          </template>-->
+          </template>
 
           <template v-slot:no-data>
             <v-empty-state
@@ -98,16 +98,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getContacts, deleteContact } from '@/services/contacts'
-//import dialogCreateContact from '@/components/dialogCreateContact.vue'
-//import dialogEditContact from '@/components/dialogEditContact.vue'
+import dialogCreateContact from '@/components/dialogCreateContact.vue'
+import dialogEditContact from '@/components/dialogEditContact.vue'
 import MessageAlertDialog from '@/components/MessageAlertDialog.vue'
 
 const contacts = ref([])
 const loading = ref(false)
 const deleteDialog = ref(false)
 const selectedContact = ref(null)
-//const contactToEdit = ref(null)
-//const editDialogRef = ref(null)
+const contactToEdit = ref(null)
+const editDialogRef = ref(null)
 const alertDialog = ref(false)
 const alertType = ref('error')
 const alertTitle = ref('')
@@ -118,7 +118,7 @@ const headers = [
   { title: 'Teléfono', key: 'phone_number', align: 'start' },
   { title: 'Nombre Mostrado', key: 'display_name', align: 'start' },
   { title: 'Empresa', key: 'company', align: 'start' },
-  //{ title: 'Acciones', key: 'actions', align: 'start', sortable: false },
+  { title: 'Acciones', key: 'actions', align: 'start', sortable: false },
 ]
 
 const loadContacts = async () => {
@@ -132,7 +132,7 @@ const loadContacts = async () => {
   }
 }
 
-/*const editContact = (contact) => {
+const editContact = (contact) => {
   contactToEdit.value = contact
   editDialogRef.value?.$el?.querySelector('[role="button"]')?.click()
 }
@@ -148,7 +148,7 @@ const handleContactCreated = async () => {
 const deleteContactConfirm = (contact) => {
   selectedContact.value = contact
   deleteDialog.value = true
-}*/
+}
 
 const showAlert = ({ type, title, message }) => {
   alertType.value = type

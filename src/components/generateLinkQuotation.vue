@@ -200,6 +200,20 @@
         contactId.value = null
     }
 
+    const validateContactPhone = (contact) => {
+        const phone = String(contact?.tel_directo ?? contact?.phone_number ?? contact?.phone ?? '').trim()
+
+        if (!phone) {
+            throw new Error('El contacto debe tener un teléfono con la lada del país. Modifica el teléfono con el formato correcto.')
+        }
+
+        if (!phone.startsWith('52', '1')) {
+            throw new Error('El teléfono del contacto debe incluir la lada del país. Modifica el teléfono con el formato correcto.')
+        }
+
+        return phone
+    }
+
 
     const loadQuotationContacts = async (quotation_id) => {
         contactsError.value = ''
@@ -211,15 +225,28 @@
         }
 
         try {
-            const contactsList = await getQuotationContacts(quotation_id)
-            contacts.value = Array.isArray(contactsList)
-                ? contactsList.map((contact) => ({
+            const contactList = await getQuotationContacts(quotation_id)
+            const firstCompany = contactList?.data?.[0]?.empresa ?? contactList?.[0]?.empresa ?? ''
+
+            if (firstCompany) {
+                chatName.value = firstCompany
+            }
+
+            contacts.value = Array.isArray(contactList)
+                ? contactList.map((contact) => ({
                     ...contact,
                     id: contact.id ?? contact.idempresa_contacto,
                     name: contact.nombre ?? contact.name ?? '',
                     company: contact.empresa ?? contact.company ?? '',
                 }))
-                : []
+                : Array.isArray(contactList?.data)
+                    ? contactList.data.map((contact) => ({
+                        ...contact,
+                        id: contact.id ?? contact.idempresa_contacto,
+                        name: contact.nombre ?? contact.name ?? '',
+                        company: contact.empresa ?? contact.company ?? '',
+                    }))
+                    : []
         } catch (error) {
             contactsError.value = error.message || 'Ocurrio un error al cargar los contactos.'
             contacts.value = []
@@ -243,12 +270,13 @@
                     throw new Error('El contacto seleccionado no tiene un identificador de empresa.')
                 }
 
+                const phoneNumber = validateContactPhone(contact)
                 const validatedContact = await validateContactCompany(companyContactId)
 
                 if (validatedContact?.exists === false) {
                     const createdContact = await createContact({
                         name: contact.nombre ?? contact.name ?? '',
-                        phone_number: contact.tel_directo ?? contact.phone_number ?? contact.phone ?? '',
+                        phone_number: phoneNumber,
                         display_name: contact.nombre ?? contact.display_name ?? contact.nombre ?? contact.name ?? '',
                         company: contact.empresa ?? contact.company ?? '',
                         position: contact.funcion ?? contact.position ?? contact.funcion ?? '',

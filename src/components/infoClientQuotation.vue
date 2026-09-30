@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import logoUrl from '@/assets/Equitek_Logo.webp'
 import isoLogoUrl from '@/assets/logo-iso.png'
 import conditionsQuotationComponent from '@/components/conditionsQuotationComponent.vue'
@@ -10,7 +10,7 @@ import linksQuotationComponent from '@/components/linksQuotationComponent.vue'
 import productsQuotationComponent from '@/components/productsQuotationComponent.vue'
 import scopesQuotationComponent from '@/components/scopesQuotationComponent.vue'
 import costsQuotationComponent from '@/components/costsQuotationComponent.vue'
-import { createQuotationEvent } from '@/services/quotation_events'
+import { registerSectionOpened } from '@/services/quotation_events'
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
@@ -24,16 +24,16 @@ const props = defineProps({
 
 const activeTab = ref('inicio')
 const mobileTabsMenu = ref(false)
+const initialSectionRegistration = ref('')
 
 const sectionKeys = {
-  inicio: 'home',
-  productos: 'products',
-  equipos: 'equipment',
-  precios: 'prices',
-  alcances: 'scopes',
-  condiciones: 'conditions',
-  financiero: 'financial',
-  ligas: 'links',
+  inicio: 'inicio',
+  productos: 'alcances',
+  equipos: 'equipos',
+  precios: 'precios',
+  alcances: 'alcances',
+  financiero: 'analisis_financiero',
+  ligas: 'ligas',
 }
 
 const registerSectionOpen = (tab) => {
@@ -43,17 +43,30 @@ const registerSectionOpen = (tab) => {
     return
   }
 
-  createQuotationEvent({
-    quotation_id: props.quotationId,
-    contact_id: props.contactId,
-    event_name: 'section_opened',
-    section_key: sectionKey,
-    element_key: '',
+  registerSectionOpened({
+    quotationId: props.quotationId,
+    contactId: props.contactId,
+    sectionKey,
     accessToken: props.accessToken,
   }).catch((error) => {
     console.error(`No se pudo registrar la apertura de ${sectionKey}:`, error)
   })
 }
+
+watch(
+  () => [props.quotationId, props.contactId],
+  ([quotationId, contactId]) => {
+    const registrationKey = `${quotationId ?? ''}:${contactId ?? ''}`
+
+    if (!quotationId || !contactId || initialSectionRegistration.value === registrationKey) {
+      return
+    }
+
+    initialSectionRegistration.value = registrationKey
+    registerSectionOpen('inicio')
+  },
+  { immediate: true },
+)
 
 const selectTab = (tab) => {
   activeTab.value = tab

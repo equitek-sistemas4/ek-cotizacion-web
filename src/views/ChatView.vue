@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getChats } from '@/services/chats'
 import { getUnreadNotifications, readNotifications } from '@/services/notifications'
+import { getQuotationRanking } from '@/services/quotation_events'
 import { useAuthStore } from '@/stores/auth'
 import generateLinkQuotation from '@/components/generateLinkQuotation.vue'
 import ChatConversationDrawer from '@/components/ChatConversationDrawer.vue'
@@ -19,10 +20,28 @@ const chatsError = ref('')
 const chatDrawerOpen = ref(false)
 const userId = ref(null)
 const unreadNotificationsByChat = ref({})
+const rankingsByQuotation = ref({})
+const rankingSortDirection = ref('desc')
 let chatsRequestId = 0
 
 const selectedChat = computed(() => chats.value.find((chat) => String(chat.id) === String(selectedChatId.value)) ?? null)
 const shouldOmitUserIdFromChats = computed(() => [1, 17].includes(Number(authStore.user?.idtipo_usuario)))
+const sortedChats = computed(() => [...chats.value].sort((first, second) => {
+  const getRankingValue = (chat) => {
+    const ranking = rankingsByQuotation.value[String(chat.quotation_id)]
+    const value = Number(ranking?.ranking_rounded ?? ranking?.ranking)
+    return Number.isFinite(value) ? value : null
+  }
+  const firstRanking = getRankingValue(first)
+  const secondRanking = getRankingValue(second)
+
+  if (firstRanking === null && secondRanking === null) return 0
+  if (firstRanking === null) return 1
+  if (secondRanking === null) return -1
+  return rankingSortDirection.value === 'asc'
+    ? firstRanking - secondRanking
+    : secondRanking - firstRanking
+}))
 
 const decodeTokenPayload = (token) => {
   try {
@@ -47,7 +66,11 @@ const formatChatTime = (value) => {
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
-const truncateChatName = (value, maxLength = 17) => {
+const toggleRankingSort = () => {
+  rankingSortDirection.value = rankingSortDirection.value === 'desc' ? 'asc' : 'desc'
+}
+
+const truncateChatName = (value, maxLength = 20) => {
   const name = String(value ?? '')
 
   return name.length > maxLength ? `${name.slice(0, maxLength - 3)}...` : name
@@ -62,6 +85,23 @@ const normalizeChat = (chat) => ({
   phone_number: chat.phone_number ?? chat.contact?.phone_number ?? null,
   time: formatChatTime(chat.created_at),
 })
+
+const loadRankings = async (chatList) => {
+  const quotationIds = [...new Set(
+    chatList.map((chat) => chat.quotation_id).filter((quotationId) => quotationId != null),
+  )]
+  const rankingEntries = await Promise.all(quotationIds.map(async (quotationId) => {
+    try {
+      const ranking = await getQuotationRanking(quotationId, { accessToken: authStore.accessToken })
+      return [String(quotationId), ranking]
+    } catch (error) {
+      console.error(`No se pudo obtener el ranking de la cotización ${quotationId}:`, error)
+      return null
+    }
+  }))
+
+  return Object.fromEntries(rankingEntries.filter(Boolean))
+}
 
 const getUnreadNotificationCounts = async () => {
   if (!userId.value) {
@@ -94,7 +134,12 @@ const fetchChats = async ({ preferredChatId = null, search = chatSearch.value } 
     const [chatList, notificationCounts] = await Promise.all([getChats(chatParams), getUnreadNotificationCounts()])
     if (requestId !== chatsRequestId) return
     unreadNotificationsByChat.value = notificationCounts
-    chats.value = chatList.map(normalizeChat).filter((chat) => chat.channel !== 'whatsapp')
+    const normalizedChats = chatList.map(normalizeChat).filter((chat) => chat.channel !== 'whatsapp')
+    const rankings = await loadRankings(normalizedChats)
+    if (requestId !== chatsRequestId) return
+
+    rankingsByQuotation.value = rankings
+    chats.value = normalizedChats
     const targetChatId = preferredChatId ?? selectedChatId.value
     selectedChatId.value = chats.value.some((chat) => String(chat.id) === String(targetChatId)) ? targetChatId : null
   } catch (error) {
@@ -144,17 +189,32 @@ onMounted(async () => {
     <v-card class="chat-shell" elevation="0" rounded="lg">
       <aside class="chat-sidebar">
         <div class="sidebar-header"><div><p class="section-label"></p><h1>Cotizaciones</h1></div><generate-link-quotation @created="handleChatCreated" /></div>
-        <v-text-field 
-          v-model="chatSearch" 
-          class="chat-search" 
-          clearable 
-          density="compact" 
-          hide-details 
-          placeholder="Buscar cotizacion" 
-          prepend-inner-icon="mdi-magnify" 
-          variant="outlined" 
-          @update:model-value="(value) => fetchChats({ search: value ?? '' })" 
-        />
+        <div class="chat-search-actions">
+          <v-text-field
+            v-model="chatSearch"
+            class="chat-search"
+            clearable
+            density="compact"
+            hide-details
+            placeholder="Buscar cotizacion"
+            prepend-inner-icon="mdi-magnify"
+            variant="outlined"
+            @update:model-value="(value) => fetchChats({ search: value ?? '' })"
+          />
+          <v-tooltip text="Ordenar por ranking">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                :aria-label="`Ordenar ranking ${rankingSortDirection === 'desc' ? 'ascendente' : 'descendente'}`"
+                :icon="rankingSortDirection === 'desc' ? 'mdi-sort-numeric-descending' : 'mdi-sort-numeric-ascending'"
+                color="primary"
+                size="small"
+                variant="tonal"
+                @click="toggleRankingSort"
+              />
+            </template>
+          </v-tooltip>
+        </div>
         <div v-if="chatsLoading" class="chat-state">
           <v-progress-circular color="primary" indeterminate size="28" />
           <span>Cargando chats...</span>
@@ -167,8 +227,8 @@ onMounted(async () => {
           <v-icon color="primary" icon="mdi-message-outline" />
           <span>No hay chats disponibles.</span>
         </div>
-        <v-list v-else class="chat-list" lines="two">
-          <v-list-item v-for="chat in chats" :key="chat.id" :active="String(chat.id) === String(selectedChatId)" active-color="primary" class="chat-list-item" rounded="lg" @click="selectChat(chat.id)">
+        <v-list v-else class="chat-list" lines="three">
+          <v-list-item v-for="chat in sortedChats" :key="chat.id" :active="String(chat.id) === String(selectedChatId)" active-color="primary" class="chat-list-item" rounded="lg" @click="selectChat(chat.id)">
             <template #prepend>
               <v-avatar :color="chat.channel === 'whatsapp' ? 'success' : 'secondary'" size="42">
                 <v-icon v-if="chat.channel === 'whatsapp'" icon="mdi-whatsapp" />
@@ -181,8 +241,8 @@ onMounted(async () => {
                 #{{ chat.quotation_id }}
               </template>
             </v-list-item-title>
-            <v-list-item-subtitle>{{ chat.description }}</v-list-item-subtitle>
-            <template #append>
+            <div class="chat-list-item__description-row">
+              <v-list-item-subtitle>{{ chat.description }}</v-list-item-subtitle>
               <v-badge
                 v-if="unreadNotificationsByChat[String(chat.id)]"
                 color="error"
@@ -190,7 +250,19 @@ onMounted(async () => {
                 inline
               />
               <span class="chat-time">{{ chat.time }}</span>
-            </template>
+            </div>
+            <div class="chat-list-item__ranking-row">
+              <v-chip
+                v-if="chat.quotation_id != null"
+                class="ranking-chip"
+                color="primary"
+                label
+                size="x-small"
+                variant="tonal"
+              >
+                <v-icon icon="mdi-chart-bar" start /> Ranking por Aperturas: <strong class="ranking-value">{{ rankingsByQuotation[String(chat.quotation_id)]?.ranking_rounded ?? '—' }}</strong>
+              </v-chip>
+            </div>
           </v-list-item>
         </v-list>
       </aside>
@@ -244,8 +316,15 @@ onMounted(async () => {
   margin: 0; 
   color: rgb(var(--v-theme-textPrimary)); 
   font-size: 1.6rem; 
+}.chat-search-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 10px;
 }.chat-search { 
   margin: 16px 0 10px; 
+  margin: 0;
+  flex: 1;
   --v-input-control-height: 34px; 
 }.chat-search :deep(.v-field) { 
   height: 34px; 
@@ -290,4 +369,9 @@ onMounted(async () => {
   min-height: 100%; margin: 0; 
 }
 @media (max-width: 900px) { .chat-view { padding: 0; }.chat-shell { display: block; height: 100dvh; }.chat-sidebar { height: 36vh; border-radius: 0; }.quotation-panel { height: 64vh; border-radius: 0; } }
+.ranking-chip { margin-right: 6px; font-weight: 700; }
+.ranking-value { margin-left: 2px; color: rgb(var(--v-theme-primary));}
+.chat-list-item__description-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.chat-list-item__description-row :deep(.v-list-item-subtitle) { flex: 1; min-width: 0; }
+.chat-list-item__ranking-row { display: flex; align-items: center; margin-top: 4px; }
 </style>

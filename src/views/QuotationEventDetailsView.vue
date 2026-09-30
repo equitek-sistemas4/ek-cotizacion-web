@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getQuotationContactsEvents, getQuotationEvents } from '@/services/quotation_events'
+import { getQuotationContactsEvents, getQuotationEvents, getQuotationRanking } from '@/services/quotation_events'
 import { getQuotationInfo } from '@/services/quotations'
 
 const route = useRoute()
@@ -16,11 +16,19 @@ const quotationOpenedLabels = ref(['Sin aperturas'])
 const activeOpeningIndex = ref(null)
 const sectionCounts = ref([])
 const contactStats = ref([])
+const ranking = ref(null)
 const trackedSections = ['home', 'products', 'equipment', 'prices', 'financial', 'links']
 const latestInteraction = ref(null)
 const topInteractingContact = ref(null)
 
 const maxSectionCount = computed(() => Math.max(...sectionCounts.value.map((section) => section.count), 1))
+const formatCurrency = (value) => new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+}).format(Number(value) || 0)
+const formatRanking = (value) => (Number(value) || 0).toFixed(2)
 const activeOpening = computed(() => {
   const index = activeOpeningIndex.value
 
@@ -143,10 +151,11 @@ const loadEventSummary = async () => {
   errorMessage.value = ''
 
   try {
-    const [quotationData, allEvents, contactsEvents] = await Promise.all([
+    const [quotationData, allEvents, contactsEvents, rankingData] = await Promise.all([
       getQuotationInfo(quotationId.value).catch(() => null),
       getQuotationEvents(),
       getQuotationContactsEvents(quotationId.value),
+      getQuotationRanking(quotationId.value).catch(() => null),
     ])
     const quotationInfo = quotationData?.quotation_info ?? quotationData?.data?.quotation_info ?? null
     const prospectInfo = quotationData?.quotation_prospect_info ?? quotationData?.data?.quotation_prospect_info ?? null
@@ -156,6 +165,7 @@ const loadEventSummary = async () => {
       company: quotationInfo?.empresa ?? prospectInfo?.empresa ?? 'Sin empresa',
       description: quotationInfo?.descripcion ?? quotationInfo?.description ?? 'Sin descripción',
     }
+    ranking.value = rankingData
 
     const events = allEvents.filter(
       (event) => String(event?.quotation_id ?? event?.quotation?.id) === String(quotationId.value),
@@ -227,6 +237,21 @@ onMounted(loadEventSummary)
     <v-alert v-if="errorMessage" class="mb-4" type="error">{{ errorMessage }}</v-alert>
 
     <template v-else-if="quotation">
+      <v-card v-if="ranking" class="quotation-ranking-card mb-6" variant="elevated">
+        <v-card-item prepend-icon="mdi-trophy-outline">
+          <v-card-title>Ranking de cotización</v-card-title>
+        </v-card-item>
+        <v-card-text>
+          <div class="ranking-summary">
+            <div><span>Ranking general</span><strong>{{ ranking.ranking_rounded }}</strong></div>
+            <div><span>Valor exacto</span><strong>{{ formatRanking(ranking.ranking) }}</strong></div>
+            <div><span>Total cotizado</span><strong>{{ formatCurrency(ranking.quotation_final_total) }}</strong></div>
+            <div><span>Total de aperturas</span><strong>{{ ranking.total_openings }}</strong></div>
+            <div><span>Total ponderado</span><strong>{{ ranking.weighted_openings_total }}</strong></div>
+          </div>
+        </v-card-text>
+      </v-card>
+
       <v-row class="mb-2">
         <v-col cols="12" md="4">
           <v-card class="summary-card h-100" variant="elevated">
@@ -517,6 +542,40 @@ onMounted(loadEventSummary)
 .contact-section-counts {
   display: grid;
   gap: 8px;
+}
+
+.ranking-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ranking-summary > div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgb(var(--v-theme-surface));
+}
+
+.ranking-summary span {
+  color: rgb(var(--v-theme-textMuted));
+  font-size: .75rem;
+}
+
+.ranking-summary strong {
+  color: rgb(var(--v-theme-textPrimary));
+  font-size: 1rem;
+}
+
+.ranking-sections-table {
+  margin-top: 16px;
+}
+
+@media (max-width: 1100px) {
+  .ranking-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 600px) {

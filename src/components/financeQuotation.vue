@@ -603,6 +603,9 @@ watch([totalInvestment, term, downPaymentPercent], recalculateMonthlyPayment)
                 <span v-if="legacyContributionPaymentRatio !== null">· {{ legacyContributionPaymentRatio.toFixed(2) }}x (factor de arrendamiento)</span>
               </strong>
             </div>
+            <p class="legacy-monthly-return-note">
+              * Es el flujo de efectivo resultante de aplicar la contribución estimada por unidad multiplicado por la producción mensual, menos el pago mensual del arrendamiento.
+            </p>
           </div>
         </v-card-text>
       </v-card>
@@ -649,6 +652,7 @@ h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1
 .legacy-monthly-return { grid-column: 1 / -1; border-top: 1px solid rgb(var(--v-theme-border)); margin-top: 4px; padding-top: 20px !important; }
 .roi-summary > .legacy-monthly-return { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .legacy-monthly-return span, .legacy-monthly-return strong { white-space: nowrap; }
+.legacy-monthly-return-note { grid-column: 1 / -1; margin: -4px 0 0; color: rgb(var(--v-theme-textMuted)); font-size: .80rem; line-height: 1.45; }
 .roi-summary span { color: rgb(var(--v-theme-textMuted)); font-size: .85rem; }
 .roi-summary strong { color: rgb(var(--v-theme-textPrimary)); font-size: 1.05rem; }
 .monthly-roi-negative { color: rgb(var(--v-theme-error)); }

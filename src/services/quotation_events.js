@@ -54,3 +54,30 @@ export const createQuotationEvent = async ({
   
   return response.data?.data ?? response.data
 }
+
+export const registerSectionOpened = async ({ quotationId, contactId, sectionKey, accessToken }) => {
+  const body = new URLSearchParams()
+  body.append('quotation_id', quotationId)
+  body.append('contact_id', contactId)
+  body.append('section_key', sectionKey)
+
+  const authorizationConfig = getAuthorizationConfig(accessToken)
+  const response = await quotEventsApi.post('/quotation-events/section-opened', body, {
+    ...authorizationConfig,
+    headers: {
+      ...authorizationConfig.headers,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  })
+
+  return response.data?.data ?? response.data
+}
+
+export const getQuotationRanking = async (quotationId, { accessToken } = {}) => {
+  const response = await quotEventsApi.get(
+    `/quotation-events/${quotationId}/ranking`,
+    getAuthorizationConfig(accessToken),
+  )
+
+  return response.data?.data ?? response.data ?? null
+}

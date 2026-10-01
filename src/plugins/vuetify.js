@@ -17,7 +17,7 @@ export const themeColors = {
 }
 
 export const themeColorsDark = {
-  primary: '#7e88a8',
+  primary: '#cccccc',
   secondary: '#fd363c',
   background: '#121826',
   surface: '#1e293b',

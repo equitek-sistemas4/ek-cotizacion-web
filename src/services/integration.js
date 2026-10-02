@@ -70,7 +70,6 @@ export const isTokenExpired = (token) => {
     return true
   }
 
-  // exp está en segundos
   const expirationTime = payload.exp * 1000
   const currentTime = Date.now()
 

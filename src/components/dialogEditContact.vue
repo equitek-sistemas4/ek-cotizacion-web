@@ -110,7 +110,6 @@ const form = ref({
   company: '',
 })
 
-// Cuando se abre el diálogo y hay un contacto, precarga los datos
 watch(dialog, (newVal) => {
   if (newVal && props.contact) {
     form.value = {
@@ -139,7 +138,6 @@ const clearForm = () => {
 }
 
 const handleUpdateContact = async () => {
-  // Validación básica
   if (!form.value.name || !form.value.phone_number) {
     errorMessage.value = 'El nombre y teléfono son campos requeridos'
     return

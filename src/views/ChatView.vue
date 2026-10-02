@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getChats } from '@/services/chats'
 import { getUnreadNotifications, readNotifications } from '@/services/notifications'
-import { getQuotationRanking } from '@/services/quotation_events'
 import { useAuthStore } from '@/stores/auth'
 import generateLinkQuotation from '@/components/generateLinkQuotation.vue'
 import ChatConversationDrawer from '@/components/ChatConversationDrawer.vue'
@@ -20,15 +19,18 @@ const chatsError = ref('')
 const chatDrawerOpen = ref(false)
 const userId = ref(null)
 const unreadNotificationsByChat = ref({})
-const rankingsByQuotation = ref({})
 const rankingSortDirection = ref('desc')
+const chatsLoadingMore = ref(false)
+const hasMoreChats = ref(true)
+const chatLimit = ref(10)
 let chatsRequestId = 0
+const chatPageSize = 10
 
 const selectedChat = computed(() => chats.value.find((chat) => String(chat.id) === String(selectedChatId.value)) ?? null)
 const shouldOmitUserIdFromChats = computed(() => [1, 17].includes(Number(authStore.user?.idtipo_usuario)))
 const sortedChats = computed(() => [...chats.value].sort((first, second) => {
   const getRankingValue = (chat) => {
-    const ranking = rankingsByQuotation.value[String(chat.quotation_id)]
+    const ranking = chat.ranking
     const value = Number(ranking?.ranking_rounded ?? ranking?.ranking)
     return Number.isFinite(value) ? value : null
   }
@@ -83,25 +85,9 @@ const normalizeChat = (chat) => ({
   quotation_id: chat.quotation_id ?? chat.quotationId ?? chat.quotation?.id ?? null,
   description: chat.description ?? chat.chat_description ?? '',
   phone_number: chat.phone_number ?? chat.contact?.phone_number ?? null,
+  ranking: chat.ranking ?? null,
   time: formatChatTime(chat.created_at),
 })
-
-const loadRankings = async (chatList) => {
-  const quotationIds = [...new Set(
-    chatList.map((chat) => chat.quotation_id).filter((quotationId) => quotationId != null),
-  )]
-  const rankingEntries = await Promise.all(quotationIds.map(async (quotationId) => {
-    try {
-      const ranking = await getQuotationRanking(quotationId, { accessToken: authStore.accessToken })
-      return [String(quotationId), ranking]
-    } catch (error) {
-      console.error(`No se pudo obtener el ranking de la cotización ${quotationId}:`, error)
-      return null
-    }
-  }))
-
-  return Object.fromEntries(rankingEntries.filter(Boolean))
-}
 
 const getUnreadNotificationCounts = async () => {
   if (!userId.value) {
@@ -122,31 +108,54 @@ const getUnreadNotificationCounts = async () => {
   }
 }
 
-const fetchChats = async ({ preferredChatId = null, search = chatSearch.value } = {}) => {
+const fetchChats = async ({ preferredChatId = null, search = chatSearch.value, append = false } = {}) => {
   const requestId = ++chatsRequestId
-  chatsLoading.value = true
-  chatsError.value = ''
+  const nextLimit = append ? chatLimit.value + chatPageSize : chatPageSize
+  if (append) {
+    chatsLoadingMore.value = true
+  } else {
+    chatsLoading.value = true
+    chatsError.value = ''
+    chatLimit.value = chatPageSize
+    hasMoreChats.value = true
+  }
   try {
-    const chatParams = { search }
+    const chatParams = { search, limit: nextLimit }
     if (!shouldOmitUserIdFromChats.value) {
       chatParams.user_id = userId.value
     }
-    const [chatList, notificationCounts] = await Promise.all([getChats(chatParams), getUnreadNotificationCounts()])
+    const [chatList, notificationCounts] = await Promise.all([
+      getChats(chatParams),
+      append ? Promise.resolve(unreadNotificationsByChat.value) : getUnreadNotificationCounts(),
+    ])
     if (requestId !== chatsRequestId) return
     unreadNotificationsByChat.value = notificationCounts
     const normalizedChats = chatList.map(normalizeChat).filter((chat) => chat.channel !== 'whatsapp')
-    const rankings = await loadRankings(normalizedChats)
-    if (requestId !== chatsRequestId) return
 
-    rankingsByQuotation.value = rankings
     chats.value = normalizedChats
+    chatLimit.value = nextLimit
+    hasMoreChats.value = chatList.length >= nextLimit
     const targetChatId = preferredChatId ?? selectedChatId.value
     selectedChatId.value = chats.value.some((chat) => String(chat.id) === String(targetChatId)) ? targetChatId : null
   } catch (error) {
     if (requestId === chatsRequestId) chatsError.value = error.message || 'Ocurrió un error al cargar los chats.'
   } finally {
-    if (requestId === chatsRequestId) chatsLoading.value = false
+    if (requestId === chatsRequestId) {
+      chatsLoading.value = false
+      chatsLoadingMore.value = false
+    }
   }
+}
+
+const loadMoreChats = async () => {
+  if (chatsLoading.value || chatsLoadingMore.value || !hasMoreChats.value) return
+
+  await fetchChats({ append: true })
+}
+
+const handleChatsScroll = ({ target }) => {
+  const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight
+  if (distanceToBottom <= 48) loadMoreChats()
 }
 
 const selectChat = async (chatId) => {
@@ -227,7 +236,7 @@ onMounted(async () => {
           <v-icon color="primary" icon="mdi-message-outline" />
           <span>No hay chats disponibles.</span>
         </div>
-        <v-list v-else class="chat-list" lines="three">
+        <v-list v-else class="chat-list" lines="three" @scroll.passive="handleChatsScroll">
           <v-list-item v-for="chat in sortedChats" :key="chat.id" :active="String(chat.id) === String(selectedChatId)" active-color="primary" class="chat-list-item" rounded="lg" @click="selectChat(chat.id)">
             <template #prepend>
               <v-avatar :color="chat.channel === 'whatsapp' ? 'success' : 'secondary'" size="42">
@@ -260,9 +269,13 @@ onMounted(async () => {
                 size="x-small"
                 variant="tonal"
               >
-                <v-icon icon="mdi-chart-bar" start /> Ranking por Aperturas: <strong class="ranking-value">{{ rankingsByQuotation[String(chat.quotation_id)]?.ranking_rounded ?? '—' }}</strong>
+                <v-icon icon="mdi-chart-bar" start /> Ranking por Aperturas: <strong class="ranking-value">{{ chat.ranking?.ranking_rounded ?? '—' }}</strong>
               </v-chip>
             </div>
+          </v-list-item>
+          <v-list-item v-if="chatsLoadingMore" class="chat-list-loading" disabled>
+            <template #prepend><v-progress-circular color="primary" indeterminate size="20" /></template>
+            <v-list-item-title>Cargando más chats...</v-list-item-title>
           </v-list-item>
         </v-list>
       </aside>
@@ -374,4 +387,5 @@ onMounted(async () => {
 .chat-list-item__description-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .chat-list-item__description-row :deep(.v-list-item-subtitle) { flex: 1; min-width: 0; }
 .chat-list-item__ranking-row { display: flex; align-items: center; margin-top: 4px; }
+.chat-list-loading { color: rgb(var(--v-theme-textMuted)); }
 </style>

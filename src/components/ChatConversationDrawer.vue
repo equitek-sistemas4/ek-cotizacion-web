@@ -204,9 +204,7 @@ const loadConversation = async () => {
     conversationChat.value = { ...chat, ...detail }
     const list = Array.isArray(messagesData) ? messagesData : messagesData?.messages ?? []
     messages.value = list.map(normalizeMessage)
-    // El panel muestra el estado de carga mientras se obtiene la conversación;
-    // quitarlo primero garantiza que los mensajes ya estén renderizados al medir
-    // su altura para posicionar el scroll al final.
+
     loading.value = false
     await scrollMessagesToBottom()
     connectSocket()
@@ -359,15 +357,17 @@ onBeforeUnmount(closeSocket)
             <p>{{ activeChat?.description }}</p>
           </div>
         </div>
-        <div v-if="!isWhatsapp" class="conversation-actions">
-          <v-text-field v-if="messageSearchVisible" v-model="messageSearch" class="message-search" clearable density="compact" hide-details :loading="messageSearchLoading" placeholder="Buscar mensaje" prepend-inner-icon="mdi-magnify" variant="outlined" @update:model-value="searchMessages" />
-          <v-btn v-if="messageSearchVisible" icon="mdi-chevron-up" size="small" variant="text" :disabled="!matchingMessages.length" @click="moveToMatch(-1)" />
-          <v-btn v-if="messageSearchVisible" icon="mdi-chevron-down" size="small" variant="text" :disabled="!matchingMessages.length" @click="moveToMatch(1)" />
-          <v-btn :icon="messageSearchVisible ? 'mdi-close' : 'mdi-magnify'" size="small" title="Buscar mensajes" variant="text" @click="toggleSearch" />
-          <dialogAddMember :chat-id="activeChat?.id" :quotation-id="activeChat?.quotation_id" @member-added="refreshConversation" />
-          <infoChatMembers :key="infoChatMembersKey" :chat-id="activeChat?.id" @chat-deleted="emit('chat-deleted')" />
+        <div class="conversation-controls">
+          <div v-if="!isWhatsapp" class="conversation-actions">
+            <v-text-field v-if="messageSearchVisible" v-model="messageSearch" class="message-search" clearable density="compact" hide-details :loading="messageSearchLoading" placeholder="Buscar mensaje" prepend-inner-icon="mdi-magnify" variant="outlined" @update:model-value="searchMessages" />
+            <v-btn v-if="messageSearchVisible" icon="mdi-chevron-up" size="small" variant="text" :disabled="!matchingMessages.length" @click="moveToMatch(-1)" />
+            <v-btn v-if="messageSearchVisible" icon="mdi-chevron-down" size="small" variant="text" :disabled="!matchingMessages.length" @click="moveToMatch(1)" />
+            <v-btn :icon="messageSearchVisible ? 'mdi-close' : 'mdi-magnify'" size="small" title="Buscar mensajes" variant="text" @click="toggleSearch" />
+            <dialogAddMember :chat-id="activeChat?.id" :quotation-id="activeChat?.quotation_id" @member-added="refreshConversation" />
+            <infoChatMembers :key="infoChatMembersKey" :chat-id="activeChat?.id" @chat-deleted="emit('chat-deleted')" />
+          </div>
+          <v-btn aria-label="Cerrar chat" icon="mdi-close" size="small" variant="text" @click="isOpen = false" />
         </div>
-        <v-btn aria-label="Cerrar chat" icon="mdi-close" size="small" variant="text" @click="isOpen = false" />
       </header>
 
       <div ref="messagesPanel" class="messages-panel">
@@ -455,7 +455,7 @@ onBeforeUnmount(closeSocket)
 .chat-drawer { width: min(100vw, 800px) !important; }
 .chat-drawer :deep(.v-navigation-drawer__content) { height: 100%; }
 .chat-content { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: 100%; height: 100%; overflow: hidden; background: rgb(var(--v-theme-surface)); }
-.conversation-header, .conversation-user, .conversation-actions, .message-composer { display: flex; align-items: center; }
+.conversation-header, .conversation-user, .conversation-controls, .conversation-actions, .message-composer { display: flex; align-items: center; }
 .conversation-header { justify-content: space-between; gap: 8px; padding: 14px 16px; border-bottom: 1px solid rgb(var(--v-theme-border)); }
 .conversation-user { min-width: 0; gap: 10px; }
 .conversation-user > div { min-width: 0; }
@@ -463,6 +463,7 @@ onBeforeUnmount(closeSocket)
 .conversation-user h2 { color: rgb(var(--v-theme-textPrimary)); font-size: 1rem; }
 .conversation-user p { margin-top: 3px; color: rgb(var(--v-theme-textMuted)); font-size: .82rem; }
 .avatar-text { color: rgb(var(--v-theme-surface)); font-weight: 700; }
+.conversation-controls { flex: 0 0 auto; gap: 2px; }
 .conversation-actions { gap: 2px; }
 .message-search { width: 170px; }
 .messages-panel { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 20px; background: linear-gradient(135deg, rgb(var(--v-theme-primary) / 8%), transparent 34%), rgb(var(--v-theme-background)); }

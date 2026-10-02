@@ -29,24 +29,20 @@ const loadQuotation = async () => {
   errorMessage.value = ''
 
   try {
-    // Obtener el chatId de los parámetros de la ruta
     loadedChatId.value = resolvedChatId.value
     
     if (!loadedChatId.value) {
       throw new Error('No se pudo identificar la cotización.')
     }
 
-    // Usar el token del usuario autenticado
     token.value = authStore.accessToken
     userId.value = authStore.userId
 
-    // Cargar la información del chat/cotización
     const chatDetail = await getChatById(loadedChatId.value, { accessToken: token.value })
     
     chat.value = chatDetail
     quotationId.value = chatDetail?.quotation_id ?? null
     
-    // Establecer el contactId del usuario actual si es miembro del chat
     const userMember = chat.value?.members?.find(
       (item) => String(item.user_id) === String(userId.value),
     )

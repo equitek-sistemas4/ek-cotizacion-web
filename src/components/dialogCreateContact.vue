@@ -130,7 +130,6 @@ const clearForm = () => {
 }
 
 const handleCreateContact = async () => {
-  // Validación básica
   if (!form.value.name || !form.value.phone_number) {
     errorMessage.value = 'El nombre y teléfono son campos requeridos'
     return

@@ -48,7 +48,6 @@ const handleSubmit = async () => {
       tokenType,
     })
 
-    // Revisar si hay una integración pendiente
     let redirectPath = '/chat'
     try {
       const pendingChatId = sessionStorage.getItem('pendingIntegrationChatId')

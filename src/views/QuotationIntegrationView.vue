@@ -25,17 +25,13 @@ const processIntegration = async () => {
       return
     }
 
-    // Verificar autenticación del usuario
     if (!authStore.accessToken) {
-      // Guardar el chatId en sessionStorage para después del login
       sessionStorage.setItem('pendingIntegrationChatId', chatId)
 
-      // Redirigir a login
       await router.push('/login')
       return
     }
 
-    // Si hay sesión activa, redirigir al chat
     await router.push({
       name: 'chat',
       query: { selected_chat_id: chatId },

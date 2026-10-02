@@ -15,12 +15,14 @@ const getAuthorizationConfig = (accessToken) => {
 }
 
 
-export const getChats = async ({ user_id, search = '' } = {}) => {
+export const getChats = async ({ user_id, search = '', limit } = {}) => {
   const normalizedSearch = typeof search === 'string' ? search.trim() : ''
+  const normalizedLimit = Number(limit)
   const response = await chatsApi.get('/chats/list', {
     params: {
       user_id,
       ...(normalizedSearch ? { search: normalizedSearch } : {}),
+      ...(Number.isInteger(normalizedLimit) && normalizedLimit > 0 ? { limit: normalizedLimit } : {}),
     },
   })
 
@@ -93,7 +95,6 @@ export const addMember = async ({
     body.append('quotation_id', quotation_id)
   }
 
-  // Agregar cada contact_id a la lista
   contact_ids.forEach((id) => {
     body.append('contact_ids', id)
   })

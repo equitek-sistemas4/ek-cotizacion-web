@@ -111,6 +111,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
           <h1>{{ quotationInfo.empresa || prospectInfo?.empresa || 'Cotización' }}</h1>
           <br />
           <h3 style="color: white;"> Atención: {{ prospectInfo.nombre }} </h3>
+          <h3 style="color: white;"> Vendedor: {{ quotationInfo.vendedor_nombre }} </h3>
         </div>
         <div class="quotation-status">
           <h2 class="portal-eyebrow">Cotización #{{ quotationInfo.idcoti }}</h2>

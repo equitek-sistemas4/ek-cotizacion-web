@@ -103,8 +103,9 @@ const alertMessage = ref('')
 
 const headers = [
   { title: 'Nombre', key: 'name', align: 'start' },
+  { title: 'Usuario', key: 'usuario', align: 'start' },
   { title: 'Correo electrónico', key: 'email', align: 'start' },
-  { title: 'Teléfono', key: 'phone_number', align: 'start' },
+  //{ title: 'Teléfono', key: 'phone_number', align: 'start' },
   //{ title: 'Acciones', key: 'actions', align: 'start', sortable: false },
 ]
 

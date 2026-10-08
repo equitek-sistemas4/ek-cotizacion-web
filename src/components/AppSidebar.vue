@@ -31,7 +31,14 @@ const toggleTheme = () => {
 const navigationItems = computed(() =>
   router
     .getRoutes()
-    .filter((route) => route.meta.showInNav)
+    .filter((route) => {
+      if (!route.meta.showInNav) return false
+
+      const allowedUserTypes = route.meta.allowedUserTypes
+      const userType = Number(authStore.user?.idtipo_usuario)
+
+      return !allowedUserTypes || allowedUserTypes.includes(userType)
+    })
     .map((route) => ({
       icon: route.meta.icon,
       label: route.meta.navLabel,

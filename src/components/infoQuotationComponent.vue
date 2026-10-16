@@ -136,7 +136,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
 
       <div class="info-grid">
         <v-card v-if="prospectInfo" class="info-card" variant="elevated">
-          <v-card-title>Contacto</v-card-title>
+          <v-card-title>Con atención a:</v-card-title>
           <v-card-text class="details-list">
             <div>
               <span>Nombre</span

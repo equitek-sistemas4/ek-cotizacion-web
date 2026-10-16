@@ -1,4 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const privilegedUserTypes = [1, 17]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -43,6 +46,7 @@ const router = createRouter({
         icon: 'mdi-account',
         navLabel: 'Usuarios',
         showInNav: true,
+        allowedUserTypes: privilegedUserTypes,
       },
     },
     {
@@ -53,6 +57,7 @@ const router = createRouter({
         icon: 'mdi-shield-account-outline',
         navLabel: 'Roles',
         showInNav: true,
+        allowedUserTypes: privilegedUserTypes,
       },
     },
     {
@@ -115,6 +120,16 @@ const router = createRouter({
       component: () => import('../views/UsersQuotationView.vue'),
     },
   ],
+})
+
+router.beforeEach((to) => {
+  const allowedUserTypes = to.meta.allowedUserTypes
+
+  if (!allowedUserTypes) return true
+
+  const userType = Number(useAuthStore().user?.idtipo_usuario)
+
+  return allowedUserTypes.includes(userType) || { name: 'chat' }
 })
 
 export default router

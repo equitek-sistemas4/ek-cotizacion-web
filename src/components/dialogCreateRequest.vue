@@ -95,7 +95,7 @@
             <v-select
               autocomplete="off"
               v-model="form.position"
-              :items="['Usuario', 'Mantenimiento', 'Project Manager', 'Champion', 'Compras', 'Financiero', 'Dueño', 'Director General', 'Directivo']"
+              :items="['Usuario', 'Mantenimiento', 'Project Manager', 'Produccion', 'Compras', 'Financiero', 'Dueño', 'Director General', 'Directivo']"
               :rules="[requiredRule]"
               label="Puesto"
               placeholder="Puesto en la empresa"

@@ -116,7 +116,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
         <div class="quotation-status">
           <h2 class="portal-eyebrow">Cotización #{{ quotationInfo.idcoti }}</h2>
           <h4 style="color: white;">Tipo: {{ quotationInfo.estado || 'Sin estado' }}</h4>
-          <h4 style="color: white;">Fecha cot.: {{ formatDate(quotationInfo.fecha_seguimiento) }}</h4>
+          <h4 style="color: white;">Fecha cot.: {{ formatDate(quotationInfo.fecha_estado) }}</h4>
           <!--<v-chip color="primary" variant="flat">
             {{ quotationInfo.estado || 'Sin estado' }}
           </v-chip>

@@ -19,6 +19,7 @@ const taxRate = 0.16
 const equipmentHeaders = computed(() => {
   const headers = [
     { title: 'Modelo', key: 'modelo' },
+    //{ title: 'Mejoras incluidas', key: 'mejoras', sortable: false },
     { title: 'Descripción', key: 'descripcion' },
     { title: 'Valor del equipo', key: 'valorEquipo', align: 'end' },
   ]
@@ -50,7 +51,7 @@ const discountRate = computed(() => toNumber(quotationInfo.value?.descuento) / 1
 
 const quotationTotals = computed(() => {
   const truncateToTwoDecimals = (value) => Math.trunc(value * 100) / 100
-  const subtotal = truncateToTwoDecimals(toNumber(quotationInfo.value?.costo ?? 0) - toNumber(quotationInfo.value?.extras ?? 0))
+  const subtotal = truncateToTwoDecimals(toNumber(quotationInfo.value?.costo ?? 0) + toNumber(quotationInfo.value?.extras ?? 0))
   const discount = subtotal * discountRate.value
   const extras = toNumber(quotationInfo.value?.extras) || equipment.value.reduce(
     (total, item) => total + toNumber(item.extras ?? item.extra),
@@ -87,6 +88,10 @@ const truncateText = (text, maxLength = 230) => {
 
   return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text
 }
+
+const getEquipmentImprovements = (item) => Array.isArray(item?.mejoras)
+  ? item.mejoras.filter((improvement) => String(improvement ?? '').trim())
+  : []
 
 const loadEquipment = async () => {
   if (!props.quotationId) {
@@ -205,7 +210,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
     </v-alert>
 
     <template v-else>
-      <div>
+      <div class="costs-introduction">
         <h3 class="equipment-eyebrow">{{ quotationHeading() }}</h3>
         <p>Esta es una cotización informativa</p>
         <h1>Equipos cotizados</h1>
@@ -224,6 +229,14 @@ watch(() => [props.quotationId, props.accessToken], () => {
           <template #item.descripcion="{ value }">
             <span :title="value">{{ truncateText(value) || '—' }}</span>
           </template>
+          <!--<template v-slot:[`item.mejoras`]="{ item }">
+            <ul v-if="getEquipmentImprovements(item).length" class="equipment-improvements">
+              <li v-for="improvement in getEquipmentImprovements(item)" :key="improvement">
+                {{ improvement }}
+              </li>
+            </ul>
+            <span v-else>Sin mejoras registradas</span>
+          </template>-->
           <template #item.valorEquipo="{ item }">
             <span class="equipment-cost">
               <strong>
@@ -374,6 +387,18 @@ watch(() => [props.quotationId, props.accessToken], () => {
   text-align: right;
   white-space: nowrap;
 }
+.equipment-improvements {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 8px 8px 24px;
+  border-left: 3px solid rgb(var(--v-theme-primary));
+  border-radius: 4px;
+  background: rgb(var(--v-theme-primary) / 8%);
+  color: rgb(var(--v-theme-textPrimary));
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
 .equipment-state {
   display: grid;
   place-items: center;
@@ -441,10 +466,24 @@ watch(() => [props.quotationId, props.accessToken], () => {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+.costs-introduction {
+  overflow-wrap: anywhere;
+}
 h1 {
   margin: 8px 0 0;
   color: rgb(var(--v-theme-textPrimary));
   font-size: clamp(1.6rem, 4vw, 2.3rem);
   line-height: 1.2;
+}
+@media (max-width: 600px) {
+  .costs-introduction,
+  .conditions-section h2 {
+    width: 100%;
+    box-sizing: border-box;
+    padding-inline: 16px;
+  }
+  .quotation-note {
+    margin-inline: 16px;
+  }
 }
 </style>

@@ -68,6 +68,21 @@ const isPdfFile = (file) => {
 
   return String(fileType).toLowerCase() === 'application/pdf' || /\.pdf(?:$|[?#])/i.test(String(fileName))
 }
+const getQuotationFileName = (file) => {
+  const fileName = file?.nombre ?? file?.name ?? file?.file_name ?? file?.filename ?? file?.descripcion ?? file?.archivo ?? file?.url
+
+  if (!fileName) {
+    return 'Archivo del producto'
+  }
+
+  const name = String(fileName).split(/[\\/]/).pop()?.split(/[?#]/)[0] || 'Archivo del producto'
+
+  try {
+    return decodeURIComponent(name)
+  } catch {
+    return name
+  }
+}
 const getOrderedQuotationFilesByProduct = (product) => [...getQuotationFilesByProduct(product)]
   .sort((first, second) => Number(isPdfFile(first)) - Number(isPdfFile(second)))
 const isProductUploading = (product) => Boolean(productUploads.value[product?.idprod])
@@ -297,12 +312,12 @@ onBeforeUnmount(() => {
     </v-alert>
 
     <template v-else>
-      <div>
+      <div class="products-introduction">
         <p class="products-eyebrow">{{ quotationHeading() }}</p>
         <h1>Requerimiento de producción</h1>
       </div>
 
-      <div>
+      <div class="products-description">
         <span>
             A continuación, mostramos los requerimientos que desean cumplan nuestros equipos en relación con el proyecto y capacidad de produccción requerida por
 ustedes. La capacidad del producto nominal es estimada, pudiendo variar hasta un 15% con base en cualidades particulares del envase, tapa, etiqueta y/o
@@ -372,26 +387,31 @@ producto en su caso.
                 <template v-if="getOrderedQuotationFilesByProduct(product).length">
                   <div class="product-images__grid">
                     <template v-for="file in getOrderedQuotationFilesByProduct(product)" :key="file.idarch">
-                      <button
-                        v-if="isPdfFile(file)"
-                        type="button"
-                        class="product-file-preview product-file-preview--pdf"
-                        :aria-label="`Abrir PDF: ${file.descripcion || 'archivo del producto'}`"
-                        @click="openPdfPreview(getQuotationFileUrl(file))"
-                      >
-                        <v-icon size="40">mdi-file-pdf-box</v-icon>
-                        <span>PDF</span>
-                      </button>
-                      <v-img
-                        v-else
-                        :src="getQuotationFileUrl(file)"
-                        :alt="file.descripcion || 'Archivo del producto'"
-                        class="product-image product-image--thumbnail"
-                        cover
-                        tabindex="0"
-                        @click="openImagePreview(getQuotationFileUrl(file))"
-                        @keydown.enter="openImagePreview(getQuotationFileUrl(file))"
-                      />
+                      <div class="product-file-card">
+                        <button
+                          v-if="isPdfFile(file)"
+                          type="button"
+                          class="product-file-preview product-file-preview--pdf"
+                          :aria-label="`Abrir PDF: ${getQuotationFileName(file)}`"
+                          @click="openPdfPreview(getQuotationFileUrl(file))"
+                        >
+                          <v-icon size="40">mdi-file-pdf-box</v-icon>
+                          <span>PDF</span>
+                        </button>
+                        <v-img
+                          v-else
+                          :src="getQuotationFileUrl(file)"
+                          :alt="getQuotationFileName(file)"
+                          class="product-image product-image--thumbnail"
+                          cover
+                          tabindex="0"
+                          @click="openImagePreview(getQuotationFileUrl(file))"
+                          @keydown.enter="openImagePreview(getQuotationFileUrl(file))"
+                        />
+                        <p class="product-file-card__name" :title="getQuotationFileName(file)">
+                          {{ getQuotationFileName(file) }}
+                        </p>
+                      </div>
                     </template>
                   </div>
                 </template>
@@ -506,9 +526,19 @@ producto en su caso.
 .product-files__input-row :deep(.v-input) {
   flex: 1;
 }
+.products-introduction,
+.products-description {
+  overflow-wrap: anywhere;
+}
 @media (max-width: 600px) {
   .products-quotation {
     gap: 16px;
+  }
+  .products-introduction,
+  .products-description {
+    width: 100%;
+    box-sizing: border-box;
+    padding-inline: 16px;
   }
   .product-card :deep(.v-card-title) {
     padding-bottom: 4px;
@@ -568,10 +598,24 @@ h1 {
 }
 .product-images__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 8px;
 }
+.product-file-card {
+  min-width: 0;
+}
+.product-file-card__name {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: rgb(var(--v-theme-textPrimary));
+  font-size: 0.75rem;
+  line-height: 1.25;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .product-image--thumbnail {
+  width: 100%;
   min-height: 88px;
   height: 88px;
   margin: 0;

@@ -20,42 +20,68 @@
             />
           </v-col>
 
-          <v-col cols="12">
+          <v-col cols="12" sm="3">
+            <v-select
+              v-model="phoneCountryCode"
+              :items="phoneCountryCodes"
+              item-title="label"
+              item-value="value"
+              label="Lada"
+              outlined
+              dense
+            />
+          </v-col>
+
+          <v-col cols="12" sm="9">
             <v-text-field
               v-model="form.phone_number"
+              :rules="[phoneRule]"
+              counter="10"
+              inputmode="numeric"
               label="Teléfono"
-              placeholder="Ingrese el número de teléfono"
+              maxlength="10"
+              placeholder="Ingresa 10 dígitos"
               required
               outlined
               dense
+              @update:model-value="sanitizePhone"
             />
           </v-col>
 
           <v-col cols="12">
             <v-text-field
-              v-model="form.display_name"
-              label="Nombre Mostrado"
-              placeholder="Ingrese el nombre mostrado"
+              v-model="form.email"
+              :rules="[emailRule]"
+              label="Correo electrónico"
+              placeholder="correo@empresa.com"
+              required
+              type="email"
               outlined
               dense
             />
           </v-col>
 
           <v-col cols="12">
-            <v-text-field
-              v-model="form.company"
+            <v-autocomplete
+              v-model="form.id_empresa"
+              :items="companies"
+              :loading="companiesLoading"
+              clearable
+              item-title="empresa"
+              item-value="idempresa"
               label="Empresa"
-              placeholder="Ingrese la empresa"
+              no-data-text="No hay empresas disponibles"
+              placeholder="Selecciona una empresa"
               outlined
               dense
             />
           </v-col>
 
           <v-col cols="12">
-            <v-text-field
+            <v-select
               v-model="form.position"
+              :items="['Usuario', 'Mantenimiento', 'Project Manager', 'Produccion', 'Compras', 'Financiero', 'Dueño', 'Director General', 'Directivo']"
               label="Puesto"
-              placeholder="Puesto en la empresa"
               outlined
               dense
             />
@@ -97,20 +123,28 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { createContact } from '@/services/contacts'
+import { ref, watch } from 'vue'
+import { createDirectContact, getContactCompanies } from '@/services/contacts'
 
 const emit = defineEmits(['contact-created'])
 
 const dialog = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
+const companies = ref([])
+const companiesLoading = ref(false)
+const phoneCountryCode = ref('+52')
+const phoneCountryCodes = [
+  { label: 'MX (+52)', value: '+52' },
+  { label: 'EE.UU. (+1)', value: '+1' },
+]
 
 const form = ref({
   name: '',
   phone_number: '',
-  display_name: '',
-  company: '',
+  email: '',
+  id_empresa: null,
+  position: '',
 })
 
 const closeDialog = () => {
@@ -122,16 +156,47 @@ const clearForm = () => {
   form.value = {
     name: '',
     phone_number: '',
-    display_name: '',
-    company: '',
+    email: '',
+    id_empresa: null,
     position: '',
   }
+  phoneCountryCode.value = '+52'
   errorMessage.value = ''
 }
 
+const sanitizePhone = (value) => {
+  form.value.phone_number = String(value ?? '').replace(/\D/g, '').slice(0, 10)
+}
+
+const phoneRule = (value) => /^\d{10}$/.test(value) || 'Ingresa un teléfono válido de 10 dígitos'
+const emailRule = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Ingresa un correo electrónico válido'
+
+const loadCompanies = async () => {
+  companiesLoading.value = true
+
+  try {
+    companies.value = await getContactCompanies()
+  } catch (error) {
+    console.error('No se pudieron cargar las empresas:', error)
+    companies.value = []
+  } finally {
+    companiesLoading.value = false
+  }
+}
+
 const handleCreateContact = async () => {
-  if (!form.value.name || !form.value.phone_number) {
-    errorMessage.value = 'El nombre y teléfono son campos requeridos'
+  if (!form.value.name || !form.value.phone_number || !form.value.email || !form.value.id_empresa) {
+    errorMessage.value = 'El nombre, teléfono, correo y empresa son campos requeridos'
+    return
+  }
+
+  if (phoneRule(form.value.phone_number) !== true) {
+    errorMessage.value = 'Ingresa un teléfono válido de 10 dígitos'
+    return
+  }
+
+  if (emailRule(form.value.email) !== true) {
+    errorMessage.value = 'Ingresa un correo electrónico válido'
     return
   }
 
@@ -139,12 +204,13 @@ const handleCreateContact = async () => {
   errorMessage.value = ''
 
   try {
-    await createContact({
+    await createDirectContact({
       name: form.value.name,
-      phone_number: form.value.phone_number,
-      display_name: form.value.display_name,
-      company: form.value.company,
-      position: form.value.company,
+      phone_number: `${phoneCountryCode.value.replace('+', '')}${form.value.phone_number}`,
+      email: form.value.email,
+      display_name: form.value.name,
+      id_empresa: form.value.id_empresa,
+      position: form.value.position,
     })
 
     emit('contact-created')
@@ -158,4 +224,10 @@ const handleCreateContact = async () => {
     loading.value = false
   }
 }
+
+watch(dialog, (isOpen) => {
+  if (isOpen && !companies.value.length) {
+    loadCompanies()
+  }
+})
 </script>

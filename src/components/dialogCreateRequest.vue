@@ -88,6 +88,7 @@
               required
               outlined
               dense
+              disabled
             />
           </v-col>
 
@@ -302,6 +303,7 @@ const handleCreateContact = async () => {
       contact_position: form.value.position,
       idempresa_contacto: contact.idempresa_contacto,
       fk_idempresa: contact.fk_idempresa,
+      accessToken: props.accessToken,
     })
 
     const chatMember = await getChatMemberByCode(route.params.access_code)
@@ -310,6 +312,7 @@ const handleCreateContact = async () => {
       await createNotification({
         user_id: chatMember.user_id,
         section: 'contact-requests',
+        accessToken: props.accessToken,
       })
     }
 

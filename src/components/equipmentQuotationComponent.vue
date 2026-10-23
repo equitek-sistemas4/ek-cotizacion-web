@@ -208,7 +208,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
     </v-alert>
 
     <template v-else>
-      <div>
+      <div class="equipment-introduction">
         <p class="equipment-eyebrow">{{ quotationHeading() }}</p>
         <h1>Equipos cotizados</h1>
       </div>
@@ -227,8 +227,18 @@ watch(() => [props.quotationId, props.accessToken], () => {
 
           <v-card-text class="equipment-content">
             <v-row>
-              <v-col cols="6">
+              <v-col cols="12" sm="6">
                 <p>{{ item.descripcion }}</p>
+
+                <div class="equipment-mobile-image">
+                  <v-img
+                    :src="getEquipmentImage(item.serie)"
+                    alt="Imagen del equipo"
+                    class="equipment-image"
+                    contain
+                  />
+                  <p class="equipment-image-note">Nota: Esta imagen es de referencia; el modelo cotizado puede variar.</p>
+                </div>
 
                 <br />
 
@@ -289,7 +299,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
                 </v-expansion-panels>
               </v-col>
 
-              <v-col cols="6">
+              <v-col cols="6" class="equipment-desktop-image-column">
                 <v-img
                   :src="getEquipmentImage(item.serie)"
                   alt="Imagen del equipo"
@@ -395,6 +405,9 @@ watch(() => [props.quotationId, props.accessToken], () => {
 .equipment-image-column a {
   align-self: flex-end;
 }
+.equipment-mobile-image {
+  display: none;
+}
 .equipment-eyebrow,
 .equipment-title p {
   margin: 0;
@@ -403,6 +416,9 @@ watch(() => [props.quotationId, props.accessToken], () => {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+.equipment-introduction {
+  overflow-wrap: anywhere;
 }
 h1 {
   margin: 8px 0 0;
@@ -529,6 +545,18 @@ h1 {
   font-weight: 600;
 }
 @media (max-width: 500px) {
+  .equipment-desktop-image-column {
+    display: none;
+  }
+  .equipment-mobile-image {
+    display: block;
+    margin-top: 24px;
+  }
+  .equipment-introduction {
+    width: 100%;
+    box-sizing: border-box;
+    padding-inline: 16px;
+  }
   .equipment-title {
     flex-direction: column;
   }

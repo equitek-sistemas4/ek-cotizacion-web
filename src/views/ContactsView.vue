@@ -5,7 +5,7 @@
         <v-card-title>
             <div class="d-flex justify-space-between align-center mb-6" style="padding: 10px;">
                 <h1 class="text-h4">Contactos</h1>
-                <!--<dialogCreateContact @contact-created="handleContactCreated">
+                <dialogCreateContact @contact-created="handleContactCreated">
                   <template v-slot:activator="{ props }">
                       <v-btn
                       v-bind="props"
@@ -15,7 +15,7 @@
                       Nuevo Contacto
                       </v-btn>
                   </template>
-                </dialogCreateContact>-->
+                </dialogCreateContact>
             </div>
         </v-card-title>
         <v-divider></v-divider>
@@ -28,7 +28,7 @@
         >
           <template v-slot:item.actions="{ item }">
             <div class="d-flex gap-2">
-              <dialogEditContact
+              <!--<dialogEditContact
                 ref="editDialogRef"
                 :contact="contactToEdit"
                 @contact-updated="handleContactUpdated"
@@ -44,7 +44,7 @@
                     title="Editar"
                   />
                 </template>
-              </dialogEditContact>
+              </dialogEditContact>-->
               <v-btn
                 icon="mdi-delete-forever"
                 size="large"

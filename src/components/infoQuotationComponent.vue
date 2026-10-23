@@ -126,7 +126,7 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
         </div>
       </div>
 
-      <div>
+      <div class="quotation-introduction">
         <span>En relación a su solicitud de precios, nos es grato presentarle para su consideración la siguiente
           propuesta de equipos que, de acuerdo y con base en sus comentarios, creemos cumple ampliamente
           con sus expectativas.
@@ -284,6 +284,9 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
   text-transform: uppercase;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
+.quotation-introduction {
+  overflow-wrap: anywhere;
+}
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -378,6 +381,11 @@ watch(() => [props.quotationId, props.accessToken], loadQuotationInfo, { immedia
   }
 }
 @media (max-width: 500px) {
+  .quotation-introduction {
+    width: 100%;
+    box-sizing: border-box;
+    padding-inline: 16px;
+  }
   .quotation-heading {
     align-items: stretch;
     flex-direction: column;

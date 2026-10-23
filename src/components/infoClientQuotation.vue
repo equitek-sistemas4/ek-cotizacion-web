@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import logoUrl from '@/assets/Equitek_Logo.webp'
 import isoLogoUrl from '@/assets/logo-iso.png'
 import conditionsQuotationComponent from '@/components/conditionsQuotationComponent.vue'
@@ -68,6 +68,11 @@ watch(
   { immediate: true },
 )
 
+watch(activeTab, async () => {
+  await nextTick()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+})
+
 const selectTab = (tab) => {
   activeTab.value = tab
   mobileTabsMenu.value = false
@@ -129,7 +134,8 @@ const selectTab = (tab) => {
             <v-btn
               v-bind="props"
               aria-label="Abrir secciones de la cotizaciÃ³n"
-              color="secondary"
+              class="mobile-tabs-menu__button"
+              color="white"
               icon="mdi-menu"
               variant="text"
             />
@@ -296,6 +302,17 @@ const selectTab = (tab) => {
             <button type="button">Suscríbete</button>
           </div>
         </div>
+        <section class="footer-video">
+          <h2>Conoce nuestro proceso</h2>
+          <div class="footer-video__frame">
+            <iframe
+              src="https://www.youtube.com/embed/dHNtRGsPdPQ?rel=0"
+              title="Conoce nuestro proceso"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+          </div>
+        </section>
         <section class="iso-banner">
           <div>
             <p class="iso-eyebrow">Comprometidos con la Calidad:</p>
@@ -536,6 +553,36 @@ const selectTab = (tab) => {
   font-weight: 700;
 }
 
+.footer-video {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
+  align-items: center;
+  gap: 32px;
+  width: min(100%, 860px);
+  margin: 0 auto;
+  padding: 0 24px 32px;
+}
+
+.footer-video h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.footer-video__frame {
+  overflow: hidden;
+  border-radius: 12px;
+  aspect-ratio: 16 / 9;
+  background: #111827;
+}
+
+.footer-video__frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
 .footer-bottom {
   display: flex;
   align-items: center;
@@ -612,6 +659,13 @@ const selectTab = (tab) => {
     margin-right: 12px;
   }
 
+  .mobile-tabs-menu__button,
+  .mobile-tabs-menu__button :deep(.v-btn__content),
+  .mobile-tabs-menu__button :deep(.v-icon) {
+    color: #fff !important;
+    opacity: 1 !important;
+  }
+
   .quotation-tabs :deep(.v-slide-group__content) {
     padding: 0 8px;
   }
@@ -640,6 +694,15 @@ const selectTab = (tab) => {
 
   .footer-links {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .footer-video {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .footer-video h3 {
+    text-align: center;
   }
 
   .footer-bottom {

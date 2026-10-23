@@ -2,9 +2,26 @@ import { createApiClient } from '@/services/http'
 
 const contactsApi = createApiClient()
 
+const getAuthorizationConfig = (accessToken) => {
+  if (!accessToken) {
+    return {}
+  }
+
+  return {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  }
+}
 
 export const getContacts = async () => {
   const response = await contactsApi.get('/contacts/list')
+
+  return Array.isArray(response.data?.data) ? response.data.data : []
+}
+
+export const getContactCompanies = async () => {
+  const response = await contactsApi.get('/contacts/companies')
 
   return Array.isArray(response.data?.data) ? response.data.data : []
 }
@@ -74,6 +91,7 @@ export const validateContactCompany = async (idempresa_contacto) => {
 export const createContact = async ({
   name,
   phone_number,
+  email,
   display_name,
   company,
   position,
@@ -83,6 +101,9 @@ export const createContact = async ({
   const body = new URLSearchParams()
   body.append('name', name)
   body.append('phone_number', phone_number)
+  if (email) {
+    body.append('email', email)
+  }
   body.append('display_name', display_name)
   body.append('company', company)
   body.append('position', position)
@@ -98,6 +119,31 @@ export const createContact = async ({
 }
 
 
+export const createDirectContact = async ({
+  name,
+  phone_number,
+  display_name,
+  email,
+  id_empresa,
+  position
+}) => {
+  const body = new URLSearchParams()
+  body.append('name', name)
+  body.append('phone_number', phone_number)
+  body.append('display_name', display_name)
+  body.append('email', email)
+  body.append('id_empresa', id_empresa)
+  body.append('position', position)
+
+  const response = await contactsApi.post('/contacts/create-direct', body, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  })
+
+  return response.data?.data ?? response.data
+}
+
 export const createContactRequest = async ({
   chat_id,
   contact_name,
@@ -108,6 +154,7 @@ export const createContactRequest = async ({
   contact_position,
   idempresa_contacto,
   fk_idempresa,
+  accessToken,
 }) => {
   const body = new URLSearchParams()
   body.append('chat_id', chat_id)
@@ -119,8 +166,11 @@ export const createContactRequest = async ({
   body.append('contact_position', contact_position)
   body.append('idempresa_contacto', idempresa_contacto)
   body.append('fk_idempresa', fk_idempresa)
+  const authorizationConfig = getAuthorizationConfig(accessToken)
   const response = await contactsApi.post(`/contacts/create-request`, body, {
+    ...authorizationConfig,
     headers: {
+      ...authorizationConfig.headers,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   })

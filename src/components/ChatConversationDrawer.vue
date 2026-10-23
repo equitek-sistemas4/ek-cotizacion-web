@@ -39,7 +39,13 @@ const infoChatMembersKey = ref(0)
 const infoChatMembersOpen = ref(false)
 const messageElementRefs = new Map()
 
-const activeChat = computed(() => conversationChat.value ?? props.chat)
+const activeChat = computed(() => {
+  if (String(conversationChat.value?.id) === String(props.chat?.id)) {
+    return conversationChat.value
+  }
+
+  return props.chat
+})
 const isWhatsapp = computed(() => activeChat.value?.channel === 'whatsapp')
 const chatTitle = computed(() => {
   const chat = activeChat.value
@@ -63,7 +69,15 @@ const formatChatTime = (dateValue) => {
   const date = Number.isFinite(numericValue) && String(dateValue).trim() !== ''
     ? new Date(numericValue < 100000000000 ? numericValue * 1000 : numericValue)
     : new Date(dateValue)
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleString('es-MX', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
 }
 
 const getAttachmentUrl = (file) => {
@@ -201,6 +215,11 @@ const loadConversation = async () => {
       ? await getChatMessagesWpp({ accessToken: props.accessToken, phone_number: chat.phone_number })
       : await getChatMessages(chat.id)
     const detail = chat.channel === 'whatsapp' ? chat : await getChatById(chat.id)
+
+    if (String(props.chat?.id) !== String(chat.id)) {
+      return
+    }
+
     conversationChat.value = { ...chat, ...detail }
     const list = Array.isArray(messagesData) ? messagesData : messagesData?.messages ?? []
     messages.value = list.map(normalizeMessage)

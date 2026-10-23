@@ -115,7 +115,9 @@
 import { onMounted, ref } from 'vue'
 import { approveContactRequest, getContactsRequests, rejectContactRequest } from '@/services/contacts'
 import { sendTemplateAddContact } from '@/services/whatsapp'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const requests = ref([])
 const loading = ref(false)
 const approvingId = ref(null)
@@ -181,7 +183,11 @@ const approveRequest = async (request) => {
     try {
       await sendTemplateAddContact({
         to: request.contact_phone_number,
-        text: accessCode,
+        clientName: request.contact_display_name ?? request.contact_name ?? '',
+        sellerWhatsapp: authStore.user?.phone_number ?? '',
+        sellerEmail: authStore.user?.email ?? '',
+        sellerName: authStore.user?.name ?? authStore.user?.nombre ?? '',
+        urlCode: accessCode,
       })
     } catch (error) {
       console.error('Error al enviar mensaje de acceso al contacto:', error)

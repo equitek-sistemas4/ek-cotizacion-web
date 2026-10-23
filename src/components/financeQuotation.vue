@@ -222,12 +222,12 @@ watch([totalInvestment, term, downPaymentPercent], recalculateMonthlyPayment)
     <v-alert v-else-if="errorMessage" type="error" variant="tonal">{{ errorMessage }}</v-alert>
 
     <template v-else>
-      <div>
+      <div class="finance-introduction">
         <p class="finance-eyebrow">{{ quotationHeading() }}</p>
         <h1>Análisis Financiero</h1>
       </div>
 
-      <div>
+      <div class="finance-description">
         <span class="finance-plans-note">
             En Equitek contamos con <strong>planes de financiamiento</strong> mediante leasing,
             <strong>te ayudamos</strong> a diseñar un <strong>plan</strong> de acuerdo a tus necesidades, con un
@@ -619,6 +619,7 @@ watch([totalInvestment, term, downPaymentPercent], recalculateMonthlyPayment)
 .finance-content { display: grid; gap: 24px; }
 .finance-state { display: grid; place-items: center; gap: 12px; min-height: 240px; color: rgb(var(--v-theme-textMuted)); }
 .finance-eyebrow { margin: 0; color: rgb(var(--v-theme-primary)); font-size: .84rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.finance-introduction, .finance-description { overflow-wrap: anywhere; }
 h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1.6rem, 4vw, 2.3rem); line-height: 1.2; }
 .finance-plans-card { overflow: hidden; }
 .finance-plans-content { padding: 2px 12px 12px; }
@@ -663,12 +664,15 @@ h1 { margin: 8px 0 0; color: rgb(var(--v-theme-textPrimary)); font-size: clamp(1
 .finance-table :deep(table) { min-width: 640px; }
 .finance-table :deep(th) { color: rgb(var(--v-theme-textPrimary)); font-weight: 700; white-space: normal; }
 @media (max-width: 700px) {
+  .finance-introduction, .finance-description { width: 100%; box-sizing: border-box; padding-inline: 16px; }
   .finance-content { gap: 20px; }
   .finance-controls { grid-template-columns: 1fr; gap: 4px; }
   .finance-controls--roi { grid-template-columns: 1fr; }
   .roi-section__heading { align-items: stretch; flex-direction: column; }
   .recovery-term-input { width: 100%; }
   .legacy-monthly-return { grid-column: auto; }
+  .legacy-monthly-return { padding-inline: 16px !important; }
+  .legacy-monthly-return span, .legacy-monthly-return strong { white-space: normal; }
   .finance-benefits { grid-template-columns: 1fr; gap: 8px; }
   .equipment-image { margin: 20px auto 14px; }
   .finance-plans-note { font-size: .84rem; }

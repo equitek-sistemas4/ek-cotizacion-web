@@ -2,6 +2,18 @@ import { createApiClient } from '@/services/http'
 
 const notificationsApi = createApiClient()
 
+const getAuthorizationConfig = (accessToken) => {
+    if (!accessToken) {
+        return {}
+    }
+
+    return {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    }
+}
+
 
 export const getUnreadNotifications = async (user_id) => {
     const response = await notificationsApi.get(`/notifications/unread/${user_id}`)
@@ -14,6 +26,7 @@ export const createNotification = async ({
     user_id,
     section,
     chat_id,
+    accessToken,
 }) => {
     const body = new URLSearchParams()
     body.append('user_id', user_id)
@@ -21,8 +34,11 @@ export const createNotification = async ({
     if (chat_id !== undefined && chat_id !== null) {
         body.append('chat_id', chat_id)
     }
+    const authorizationConfig = getAuthorizationConfig(accessToken)
     const response = await notificationsApi.post(`/notifications/create`, body, {
+        ...authorizationConfig,
         headers: {
+            ...authorizationConfig.headers,
             'Content-Type': 'application/x-www-form-urlencoded',
         },
     })

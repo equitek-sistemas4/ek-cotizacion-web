@@ -1,10 +1,12 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { deleteChat, getChatById, deleteMemberToChat } from '@/services/chats'
 import { sendTemplateMeta } from '@/services/whatsapp'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const props = defineProps({
   showActivator: {
@@ -83,14 +85,19 @@ const loadChat = async () => {
   }
 }
 
-const sendTemplateMetaMessage = async (
+const sendTemplateMetaMessage = async ({
   to,
-  text,
-) => {
+  clientName,
+  urlCode,
+}) => {
   try {
     const response = await sendTemplateMeta({
-      to: to,
-      text: text,
+      to,
+      clientName,
+      sellerWhatsapp: authStore.user?.phone_number ?? '',
+      sellerEmail: authStore.user?.email ?? '',
+      sellerName: authStore.user?.name ?? authStore.user?.nombre ?? '',
+      urlCode,
     })
     console.log('Template meta sent successfully:', response)
   } catch (error) {
@@ -101,6 +108,7 @@ const sendTemplateMetaMessage = async (
 const sendMemberUrlByWhatsapp = async (member) => {
   const accessCode = member?.access_code
   const phoneNumber = member.contact?.phone_number
+  const clientName = member.contact?.display_name ?? member.contact?.name ?? member.contact_name ?? ''
 
   if (!accessCode || !phoneNumber) {
     return
@@ -109,7 +117,11 @@ const sendMemberUrlByWhatsapp = async (member) => {
   sendingWhatsappMemberId.value = member.id
 
   try {
-    await sendTemplateMetaMessage(phoneNumber, accessCode)
+    await sendTemplateMetaMessage({
+      to: phoneNumber,
+      clientName,
+      urlCode: accessCode,
+    })
   } finally {
     sendingWhatsappMemberId.value = null
   }

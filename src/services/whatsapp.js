@@ -51,12 +51,16 @@ export const sendWhatsappMessage = async ({
 
 export const sendTemplateMeta = async ({
   to,
-  text,
+  clientName,
+  sellerWhatsapp,
+  sellerEmail,
+  sellerName,
+  urlCode,
   messaging_product = 'whatsapp',
   recipient_type = 'individual',
   type = 'template',
   templateName = 'envia_cotizacion_web',
-  languageCode = 'en',
+  languageCode = 'es_MX',
 } = {}) => {
   const response = await whatsappApi.post('/whatsapp/send-template-meta', {
     messaging_product: messaging_product,
@@ -70,13 +74,22 @@ export const sendTemplateMeta = async ({
       },
       components: [
         {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: clientName },
+            { type: 'text', text: sellerWhatsapp },
+            { type: 'text', text: sellerEmail },
+            { type: 'text', text: sellerName },
+          ],
+        },
+        {
           type: 'button',
           sub_type: 'url',
           index: 0,
           parameters: [
             {
               type: 'text',
-              text: text,
+              text: urlCode,
             },
           ],
         },
@@ -90,12 +103,16 @@ export const sendTemplateMeta = async ({
 
 export const sendTemplateAddContact = async ({
   to,
-  text,
+  clientName,
+  sellerWhatsapp,
+  sellerEmail,
+  sellerName,
+  urlCode,
   messaging_product = 'whatsapp',
   recipient_type = 'individual',
   type = 'template',
   templateName = 'contact_request',
-  languageCode = 'en',
+  languageCode = 'es_MX',
 } = {}) => {
   const response = await whatsappApi.post('/whatsapp/send-template-meta', {
     messaging_product: messaging_product,
@@ -109,13 +126,22 @@ export const sendTemplateAddContact = async ({
       },
       components: [
         {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: clientName },
+            { type: 'text', text: sellerWhatsapp },
+            { type: 'text', text: sellerEmail },
+            { type: 'text', text: sellerName },
+          ],
+        },
+        {
           type: 'button',
           sub_type: 'url',
           index: 0,
           parameters: [
             {
               type: 'text',
-              text: text,
+              text: urlCode,
             },
           ],
         },
@@ -134,7 +160,7 @@ export const sendTemplate = async ({
   recipient_type = 'individual',
   type = 'template',
   templateName = 'enviar_cotizacion',
-  languageCode = 'en',
+  languageCode = 'es_MX',
 } = {}) => {
   const response = await whatsappApi.post('/whatsapp/send-template', {
     messaging_product: messaging_product,

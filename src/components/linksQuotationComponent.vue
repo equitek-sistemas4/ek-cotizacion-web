@@ -64,7 +64,7 @@ const videos = [
       </section>
     </div>
 
-    <h1>Redes sociales</h1>
+    <h1 class="links-heading">Redes sociales</h1>
     <div class="social-links">
       <v-btn
         v-for="socialLink in socialLinks"
@@ -81,7 +81,7 @@ const videos = [
 
     <br/>
 
-    <h1>Testimoniales</h1>
+    <h1 class="links-heading">Testimoniales</h1>
     <div class="videos-grid">
       <v-card v-for="video in videos" :key="video.id" variant="outlined">
         <v-card-title>{{ video.title }}</v-card-title>
@@ -140,6 +140,10 @@ const videos = [
   flex-wrap: wrap;
   gap: 12px;
 }
+.links-heading,
+.social-links {
+  overflow-wrap: anywhere;
+}
 .videos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -156,5 +160,13 @@ const videos = [
   width: 100%;
   height: 100%;
   border: 0;
+}
+@media (max-width: 600px) {
+  .links-heading,
+  .social-links {
+    width: 100%;
+    box-sizing: border-box;
+    padding-inline: 16px;
+  }
 }
 </style>

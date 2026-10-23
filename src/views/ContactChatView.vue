@@ -90,7 +90,10 @@ const formatChatTime = (dateValue) => {
     return ''
   }
 
-  return date.toLocaleTimeString('es-MX', {
+  return date.toLocaleString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   })
@@ -279,7 +282,7 @@ const loadChat = async () => {
     chatId.value = chatMember?.chat_id ?? null
     contactId.value = chatMember?.contact_id ?? null
     userId.value = chatMember?.user_id ?? null
-    token.value = chatMember?.token ?? null
+    token.value = chatMember?.access_token ?? chatMember?.accessToken ?? chatMember?.token ?? null
     quotationId.value = chatMember?.quotation_id ?? null
 
     if (!quotationOpenRegistered && quotationId.value && contactId.value) {
@@ -381,6 +384,7 @@ const sendMessage = async () => {
       user_id: userId.value,
       section: 'chat',
       chat_id: chatId.value,
+      accessToken: token.value,
     })
 
     message.value = ''
@@ -901,12 +905,14 @@ onBeforeUnmount(() => {
   }
 
   .conversation-header {
+    align-items: flex-start;
     padding: calc(10px + env(safe-area-inset-top)) 12px 10px;
     gap: 8px;
   }
 
   .conversation-user {
-    flex: 1 1 auto;
+    flex: 1 1 0;
+    align-items: flex-start;
     gap: 10px;
   }
 
@@ -918,6 +924,14 @@ onBeforeUnmount(() => {
     width: 38px !important;
     height: 38px !important;
     min-width: 38px !important;
+  }
+
+  .conversation-user h1,
+  .conversation-user p {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   .conversation-user h1 {

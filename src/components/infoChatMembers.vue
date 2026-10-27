@@ -46,6 +46,23 @@ const deletingChat = ref(false)
 const members = computed(() => (Array.isArray(chat.value?.members) ? chat.value.members : []))
 const baseUrl = import.meta.env.VITE_BASE_URL_WEB?.replace(/\/$/, '') ?? ''
 
+const sellerWhatsappByEmail = {
+  ventasmty1: '528118051729',
+  ventasmty2: '528118145405',
+  ventasmty4: '528115076621',
+  ventasmty6: '528111544467',
+  ventasmty8: '528118173622',
+  ventasmty9: '525577349468',
+  ventasmty10: '523332185912',
+  ventasmty16: '528113134506',
+}
+
+const getSellerWhatsapp = (email) => {
+  const emailUser = String(email ?? '').split('@')[0].trim().toLowerCase()
+
+  return sellerWhatsappByEmail[emailUser] ?? '528115012414'
+}
+
 const formatDate = (dateValue) => {
   if (!dateValue) {
     return ''
@@ -88,15 +105,18 @@ const loadChat = async () => {
 const sendTemplateMetaMessage = async ({
   to,
   clientName,
+  sellerWhatsapp,
+  sellerEmail,
+  sellerName,
   urlCode,
 }) => {
   try {
     const response = await sendTemplateMeta({
       to,
       clientName,
-      sellerWhatsapp: authStore.user?.phone_number ?? '',
-      sellerEmail: authStore.user?.email ?? '',
-      sellerName: authStore.user?.name ?? authStore.user?.nombre ?? '',
+      sellerWhatsapp,
+      sellerEmail,
+      sellerName,
       urlCode,
     })
     console.log('Template meta sent successfully:', response)
@@ -109,6 +129,11 @@ const sendMemberUrlByWhatsapp = async (member) => {
   const accessCode = member?.access_code
   const phoneNumber = member.contact?.phone_number
   const clientName = member.contact?.display_name ?? member.contact?.name ?? member.contact_name ?? ''
+  const sellerWhatsapp = getSellerWhatsapp(authStore.user?.email)
+  const sellerEmail = authStore.user?.email
+    ? `${authStore.user.email}@equitek.com.mx`
+    : ''
+  const sellerName = authStore.user?.name ?? authStore.user?.nombre ?? ''
 
   if (!accessCode || !phoneNumber) {
     return
@@ -120,6 +145,9 @@ const sendMemberUrlByWhatsapp = async (member) => {
     await sendTemplateMetaMessage({
       to: phoneNumber,
       clientName,
+      sellerWhatsapp,
+      sellerEmail,
+      sellerName,
       urlCode: accessCode,
     })
   } finally {

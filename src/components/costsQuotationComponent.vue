@@ -19,10 +19,13 @@ const taxRate = 0.16
 const equipmentHeaders = computed(() => {
   const headers = [
     { title: 'Modelo', key: 'modelo' },
-    //{ title: 'Mejoras incluidas', key: 'mejoras', sortable: false },
     { title: 'Descripción', key: 'descripcion' },
     { title: 'Valor del equipo', key: 'valorEquipo', align: 'end' },
   ]
+
+  if (equipment.value.some((item) => getEquipmentImprovements(item).length)) {
+    headers.splice(2, 0, { title: 'Mejoras incluidas', key: 'mejoras', sortable: false })
+  }
 
   return headers
 })
@@ -48,6 +51,7 @@ const formatAmount = (value) => new Intl.NumberFormat('es-MX', {
 }).format(toNumber(value))
 
 const discountRate = computed(() => toNumber(quotationInfo.value?.descuento) / 100)
+const hasIva = computed(() => toNumber(quotationInfo.value?.iva) === 16)
 
 const quotationTotals = computed(() => {
   const truncateToTwoDecimals = (value) => Math.trunc(value * 100) / 100
@@ -58,7 +62,7 @@ const quotationTotals = computed(() => {
     0,
   )
   const beforeTax = subtotal - discount + extras
-  const tax = beforeTax * taxRate
+  const tax = hasIva.value ? beforeTax * taxRate : 0
 
   return {
     subtotal: truncateToTwoDecimals(subtotal),
@@ -229,14 +233,14 @@ watch(() => [props.quotationId, props.accessToken], () => {
           <template #item.descripcion="{ value }">
             <span :title="value">{{ truncateText(value) || '—' }}</span>
           </template>
-          <!--<template v-slot:[`item.mejoras`]="{ item }">
+          <template v-slot:[`item.mejoras`]="{ item }">
             <ul v-if="getEquipmentImprovements(item).length" class="equipment-improvements">
               <li v-for="improvement in getEquipmentImprovements(item)" :key="improvement">
                 {{ improvement }}
               </li>
             </ul>
-            <span v-else>Sin mejoras registradas</span>
-          </template>-->
+            <span v-else></span>
+          </template>
           <template #item.valorEquipo="{ item }">
             <span class="equipment-cost">
               <strong>
@@ -284,7 +288,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
               <td>Extras</td>
               <td>${{ formatAmount(quotationTotals.extras) }} {{ currencyCode }}</td>
             </tr>
-            <tr>
+            <tr v-if="hasIva">
               <td>IVA (16%)</td>
               <td>${{ formatAmount(quotationTotals.tax) }} {{ currencyCode }}</td>
             </tr>
@@ -392,7 +396,7 @@ watch(() => [props.quotationId, props.accessToken], () => {
   gap: 6px;
   margin: 0;
   padding: 8px 8px 8px 24px;
-  border-left: 3px solid rgb(var(--v-theme-primary));
+
   border-radius: 4px;
   background: rgb(var(--v-theme-primary) / 8%);
   color: rgb(var(--v-theme-textPrimary));

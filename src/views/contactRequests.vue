@@ -141,6 +141,23 @@ const statusLabels = {
 const statusColor = (status) => ({ pending: 'warning', approved: 'success', rejected: 'error' })[status] || 'secondary'
 const statusLabel = (status) => statusLabels[status] || status || 'Sin estado'
 
+const sellerWhatsappByEmail = {
+  ventasmty1: '528118051729',
+  ventasmty2: '528118145405',
+  ventasmty4: '528115076621',
+  ventasmty6: '528111544467',
+  ventasmty8: '528118173622',
+  ventasmty9: '525577349468',
+  ventasmty10: '523332185912',
+  ventasmty16: '528113134506',
+}
+
+const getSellerWhatsapp = (email) => {
+  const emailUser = String(email ?? '').split('@')[0].trim().toLowerCase()
+
+  return sellerWhatsappByEmail[emailUser] ?? '528115012414'
+}
+
 const formatDate = (date) => {
   if (!date) return 'Fecha no disponible'
 
@@ -184,8 +201,10 @@ const approveRequest = async (request) => {
       await sendTemplateAddContact({
         to: request.contact_phone_number,
         clientName: request.contact_display_name ?? request.contact_name ?? '',
-        sellerWhatsapp: authStore.user?.phone_number ?? '',
-        sellerEmail: authStore.user?.email ?? '',
+        sellerWhatsapp: getSellerWhatsapp(authStore.user?.email),
+        sellerEmail: authStore.user?.email
+          ? `${authStore.user.email}@equitek.com.mx`
+          : '',
         sellerName: authStore.user?.name ?? authStore.user?.nombre ?? '',
         urlCode: accessCode,
       })

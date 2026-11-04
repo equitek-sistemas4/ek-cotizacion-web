@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useTheme } from 'vuetify'
+import { useDisplay, useTheme } from 'vuetify'
 import { getUnreadNotifications, readNotifications } from '@/services/notifications'
 import { useAuthStore } from '@/stores/auth'
 import logoImg from '@/assets/ek-logo.png'
@@ -9,14 +9,17 @@ import logoImg from '@/assets/ek-logo.png'
 const router = useRouter()
 const route = useRoute()
 const theme = useTheme()
+const { xs } = useDisplay()
 const authStore = useAuthStore()
 const collapsed = ref(false)
+const mobileMenuOpen = ref(false)
 const logoUrl = logoImg
 const unreadNotifications = ref([])
 let unreadNotificationsInterval = null
 
 const loggedUserName = computed(() => authStore.user?.name || authStore.user?.email || 'Usuario')
 const isDarkTheme = computed(() => theme.global.name.value === 'dark')
+const isMobile = computed(() => xs.value)
 const themeToggleLabel = computed(() =>
   isDarkTheme.value ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
 )
@@ -120,7 +123,16 @@ const getUnreadNotificationCount = (section) => {
 }
 
 const logout = () => {
+  mobileMenuOpen.value = false
   router.push('/login')
+}
+
+const handleNavigationClick = (item) => {
+  if (item.name === 'contact-requests') {
+    markNotificationsAsRead(item.name)
+  }
+
+  mobileMenuOpen.value = false
 }
 
 onMounted(() => {
@@ -141,6 +153,7 @@ onBeforeUnmount(() => {
 
 <template>
   <v-navigation-drawer
+    v-if="!isMobile"
     class="app-sidebar"
     color="surface"
     permanent
@@ -184,7 +197,7 @@ onBeforeUnmount(() => {
           :to="item.path"
           color="primary"
           rounded="lg"
-          @click="item.name === 'contact-requests' && markNotificationsAsRead(item.name)"
+          @click="handleNavigationClick(item)"
         >
           <template #append>
             <v-badge
@@ -221,11 +234,105 @@ onBeforeUnmount(() => {
       </v-list>
     </div>
   </v-navigation-drawer>
+
+  <v-app-bar v-else class="mobile-header" color="surface" elevation="0">
+    <div class="mobile-header__content">
+      <div class="brand-section mobile-brand-section">
+        <v-avatar class="brand-logo" rounded="lg" size="40">
+          <v-img v-if="logoUrl" :src="logoUrl" alt="Equitek" cover />
+          <span v-else>EQ</span>
+        </v-avatar>
+
+        <span class="brand-name">Equitek</span>
+      </div>
+
+      <v-menu
+        v-model="mobileMenuOpen"
+        class="mobile-navigation-menu"
+        :close-on-content-click="false"
+        location="bottom end"
+        offset="10"
+      >
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            aria-label="Abrir menú de navegación"
+            icon="mdi-menu"
+            variant="text"
+          />
+        </template>
+
+        <v-card class="mobile-navigation-card" color="surface">
+          <div class="user-identity mobile-user-identity">
+            <div class="user-identity__icon">
+              <v-icon icon="mdi-account-circle" size="26" />
+            </div>
+            <span class="user-identity__name">{{ loggedUserName }}</span>
+          </div>
+
+          <v-list class="nav-list" density="compact" nav>
+            <v-list-item
+              v-for="item in navigationItems"
+              :key="item.name"
+              :prepend-icon="item.icon"
+              :title="item.label"
+              :to="item.path"
+              color="primary"
+              rounded="lg"
+              @click="handleNavigationClick(item)"
+            >
+              <template #append>
+                <v-badge
+                  v-if="getUnreadNotificationCount(item.name)"
+                  :content="getUnreadNotificationCount(item.name)"
+                  color="primary"
+                  inline
+                />
+              </template>
+            </v-list-item>
+          </v-list>
+
+          <v-divider class="mobile-navigation-divider" />
+
+          <v-list class="logout-list" density="compact" nav>
+            <v-list-item
+              class="utility-item theme-item"
+              color="primary"
+              :prepend-icon="isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+              rounded="lg"
+              :title="themeToggleLabel"
+              @click="toggleTheme"
+            />
+            <v-list-item
+              class="utility-item logout-item"
+              color="primary"
+              prepend-icon="mdi-logout"
+              rounded="lg"
+              title="Cerrar sesión"
+              @click="logout"
+            />
+          </v-list>
+        </v-card>
+      </v-menu>
+    </div>
+  </v-app-bar>
 </template>
 
 <style scoped>
 .app-sidebar {
   border-right: 1px solid rgb(var(--v-theme-border));
+}
+
+.mobile-header {
+  border-bottom: 1px solid rgb(var(--v-theme-border));
+}
+
+.mobile-header__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 12px;
 }
 
 .sidebar-content {
@@ -260,6 +367,10 @@ onBeforeUnmount(() => {
   color: rgb(var(--v-theme-textPrimary));
   font-size: 1.15rem;
   font-weight: 700;
+}
+
+.mobile-brand-section {
+  padding: 4px 0;
 }
 
 .collapse-button {
@@ -361,5 +472,21 @@ onBeforeUnmount(() => {
 
 .logout-item:hover {
   background: rgba(var(--v-theme-secondary), 0.12);
+}
+
+.mobile-navigation-card {
+  width: min(320px, calc(100vw - 24px));
+  padding: 10px;
+  border: 1px solid rgba(var(--v-theme-border), 0.9);
+  border-radius: 18px;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+}
+
+.mobile-user-identity {
+  margin-top: 0;
+}
+
+.mobile-navigation-divider {
+  margin: 10px 4px;
 }
 </style>

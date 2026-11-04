@@ -299,6 +299,7 @@ watch(dialog, async (isOpen) => {
         <v-dialog
             v-model="dialog"
             max-width="800"
+            width="calc(100vw - 24px)"
         >
             <template v-if="showActivator" v-slot:activator="{ props: activatorProps }">
                 <v-btn
@@ -726,5 +727,64 @@ h3 {
 .info-chat-empty-members {
   min-height: 90px;
   padding: 10px 0;
+}
+
+@media (max-width: 600px) {
+  .info-chat-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px;
+  }
+
+  .info-chat-card-body {
+    padding: 14px;
+    overflow-x: hidden;
+  }
+
+  .info-chat-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 0;
+  }
+
+  .info-chat-avatar-wrap {
+    padding: 2px;
+  }
+
+  .info-chat-header-details {
+    min-width: 0;
+  }
+
+  .info-chat-header h2,
+  .info-chat-company-row,
+  .member-name,
+  .member-subtitle {
+    overflow-wrap: anywhere;
+  }
+
+  .info-chat-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .info-chat-summary {
+    justify-content: flex-start;
+  }
+
+  .members-panel {
+    padding: 10px 0 0;
+  }
+
+  .member-list-item {
+    padding-right: 2px;
+  }
+
+  .member-date {
+    display: none;
+  }
+
+  .member-url {
+    align-items: flex-start;
+  }
 }
 </style>

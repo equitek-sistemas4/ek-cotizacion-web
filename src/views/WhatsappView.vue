@@ -1,6 +1,7 @@
 <script setup>
 import { shallowRef, computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { getChatsWpp } from '@/services/chats_whatsapp'
 import { useAuthStore } from '@/stores/auth'
 import WhatsappConversationPanel from '@/components/WhatsappConversationPanel.vue'
@@ -9,22 +10,39 @@ import dialogCreateWhatsappChat from '@/components/dialogCreateWhatsappChat.vue'
 const emit = defineEmits(['created'])
 
 const router = useRouter()
+const { xs } = useDisplay()
 const authStore = useAuthStore()
 const whatsappDialog = shallowRef(false)
 const chats = ref([])
 const chatSearch = ref('')
 const selectedChatId = ref(null)
+const mobileConversationOpen = ref(false)
 const chatsLoading = ref(false)
 const chatsError = ref('')
 
 const selectedChat = computed(() => chats.value.find((chat) => String(chat.id) === String(selectedChatId.value)) ?? null)
+const isMobile = computed(() => xs.value)
+const showConversationPanel = computed(() =>
+  Boolean(selectedChat.value) && (!isMobile.value || mobileConversationOpen.value),
+)
 const shouldOmitUserId = computed(() => [1, 17].includes(Number(authStore.user?.idtipo_usuario)))
+
+const returnToConversationList = () => {
+  mobileConversationOpen.value = false
+  selectedChatId.value = null
+}
+
+const selectConversation = (chatId) => {
+  selectedChatId.value = chatId
+  mobileConversationOpen.value = isMobile.value
+}
 
 const handleWhatsappChatCreated = async (createdChat) => {
   await fetchChats()
   const createdChatId = createdChat?.id ?? createdChat?.chat_id ?? createdChat?.data?.id
   if (createdChatId && chats.value.some((chat) => String(chat.id) === String(createdChatId))) {
     selectedChatId.value = createdChatId
+    mobileConversationOpen.value = isMobile.value
   }
   emit('created', createdChat)
 }
@@ -56,7 +74,10 @@ const fetchChats = async () => {
     chats.value = (await getChatsWpp(params))
       .map(normalizeChat)
       .filter((chat) => !query || `${chat.name} ${chat.description}`.toLocaleLowerCase().includes(query))
-    if (!chats.value.some((chat) => String(chat.id) === String(selectedChatId.value))) selectedChatId.value = null
+    if (!chats.value.some((chat) => String(chat.id) === String(selectedChatId.value))) {
+      selectedChatId.value = null
+      mobileConversationOpen.value = false
+    }
   } catch (error) {
     chatsError.value = error.message || 'No se pudieron cargar los chats de WhatsApp.'
   } finally {
@@ -77,7 +98,7 @@ onMounted(async () => {
 <template>
   <v-container class="whatsapp-view" fluid>
     <v-card class="whatsapp-shell" elevation="0" rounded="lg">
-      <aside class="chat-sidebar">
+      <aside v-show="!isMobile || !mobileConversationOpen" class="chat-sidebar">
         <div class="sidebar-header">
           <v-row>
             <v-col cols="8">
@@ -133,7 +154,7 @@ onMounted(async () => {
           <span>No hay conversaciones disponibles.</span>
         </div>
         <v-list v-else class="chat-list" lines="two">
-          <v-list-item v-for="chat in chats" :key="chat.id" :active="String(chat.id) === String(selectedChatId)" active-color="success" class="chat-list-item" rounded="lg" @click="selectedChatId = chat.id">
+          <v-list-item v-for="chat in chats" :key="chat.id" :active="String(chat.id) === String(selectedChatId)" active-color="success" class="chat-list-item" rounded="lg" @click="selectConversation(chat.id)">
             <template #prepend><v-avatar color="success" size="42"><v-icon icon="mdi-whatsapp" /></v-avatar></template>
             <v-list-item-title>{{ chat.name }}</v-list-item-title>
             <v-list-item-subtitle>{{ chat.description }}</v-list-item-subtitle>
@@ -142,10 +163,15 @@ onMounted(async () => {
         </v-list>
       </aside>
 
-      <section v-if="selectedChat" class="conversation-panel">
+      <section v-if="showConversationPanel" class="conversation-panel">
+        <div v-if="isMobile" class="mobile-conversation-navigation">
+          <v-btn prepend-icon="mdi-arrow-left" variant="text" @click="returnToConversationList">
+            Volver a conversaciones
+          </v-btn>
+        </div>
         <WhatsappConversationPanel :access-token="authStore.accessToken" :chat="selectedChat" :user-name="authStore.user?.name || authStore.user?.email || 'Usuario'" />
       </section>
-      <section v-else class="conversation-panel empty-panel"><v-icon color="success" icon="mdi-whatsapp" size="44" /><span>Selecciona una conversación.</span></section>
+      <section v-else class="conversation-panel empty-panel desktop-empty-panel"><v-icon color="success" icon="mdi-whatsapp" size="44" /><span>Selecciona una conversación.</span></section>
     </v-card>
   </v-container>
 </template>
@@ -258,6 +284,72 @@ onMounted(async () => {
   .conversation-panel { 
     height: 64vh; 
     border-radius: 0; 
+  }
+}
+
+@media (max-width: 600px) {
+  .whatsapp-view {
+    height: calc(100dvh - 64px);
+    min-height: calc(100dvh - 64px);
+  }
+
+  .whatsapp-shell {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .chat-sidebar,
+  .conversation-panel {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .chat-sidebar {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .desktop-empty-panel {
+    display: none;
+  }
+
+  .chat-list {
+    position: static;
+    inset: auto;
+    min-height: 0;
+    width: 100%;
+    align-self: stretch;
+    margin-top: 6px;
+    overflow-y: auto;
+    grid-row: 3;
+  }
+
+  .chat-state {
+    min-height: 0;
+    grid-row: 3;
+  }
+
+  .conversation-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-conversation-navigation {
+    display: flex;
+    align-items: center;
+    flex: 0 0 52px;
+    height: 52px;
+    box-sizing: border-box;
+    padding: 6px 12px;
+    border-bottom: 1px solid rgb(var(--v-theme-border));
+    background: rgb(var(--v-theme-surface));
+  }
+
+  .conversation-panel :deep(.whatsapp-conversation) {
+    flex: 1;
+    min-height: 0;
   }
 }
 </style>

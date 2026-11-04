@@ -1,16 +1,17 @@
 <template>
   <div class="contact-requests-view pa-6">
     <v-container>
-      <div class="d-flex align-center justify-space-between mb-6">
+      <div class="contact-requests-header d-flex align-center justify-space-between mb-6">
         <div>
           <h1 class="text-h4">Solicitudes de contacto</h1>
           <p class="text-medium-emphasis mt-1">
             Solicitudes pendientes y registradas por chat.
           </p>
         </div>
-        <div class="d-flex align-center ga-3">
+        <div class="contact-requests-filters d-flex align-center ga-3">
           <v-select
             v-model="selectedStatus"
+            class="contact-status-filter"
             :items="statusOptions"
             density="compact"
             hide-details
@@ -260,5 +261,75 @@ onMounted(loadContactRequests)
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .contact-requests-view {
+    padding: 16px !important;
+  }
+
+  .contact-requests-header {
+    align-items: stretch !important;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px !important;
+  }
+
+  .contact-requests-header h1 {
+    font-size: 1.65rem !important;
+    line-height: 1.2;
+  }
+
+  .contact-requests-filters {
+    width: 100%;
+  }
+
+  .contact-status-filter {
+    flex: 1;
+    min-width: 0 !important;
+  }
+
+  .request-card :deep(.v-card-item) {
+    align-items: flex-start;
+  }
+
+  .request-card :deep(.v-card-title),
+  .request-card :deep(.v-card-subtitle) {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .request-card :deep(.v-card-item__append) {
+    margin-inline-start: 8px;
+  }
+
+  .request-details {
+    gap: 10px;
+  }
+
+  .request-details > div {
+    align-items: flex-start;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .request-details h3 {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .request-card :deep(.v-card-actions) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .request-card :deep(.v-card-actions > .v-spacer) {
+    display: none;
+  }
+
+  .request-card :deep(.v-card-actions > .text-caption) {
+    flex: 0 0 100%;
+  }
 }
 </style>

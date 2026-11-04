@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { getChats } from '@/services/chats'
 import { getUnreadNotifications, readNotifications } from '@/services/notifications'
 import { useAuthStore } from '@/stores/auth'
@@ -10,6 +11,7 @@ import UsersQuotationView from '@/views/UsersQuotationView.vue'
 
 const router = useRouter()
 const route = useRoute()
+const { xs } = useDisplay()
 const authStore = useAuthStore()
 const chats = ref([])
 const chatSearch = ref('')
@@ -27,6 +29,7 @@ let chatsRequestId = 0
 const chatPageSize = 10
 
 const selectedChat = computed(() => chats.value.find((chat) => String(chat.id) === String(selectedChatId.value)) ?? null)
+const isMobile = computed(() => xs.value)
 const shouldOmitUserIdFromChats = computed(() => [1, 17].includes(Number(authStore.user?.idtipo_usuario)))
 const sortedChats = computed(() => [...chats.value].sort((first, second) => {
   const getRankingValue = (chat) => {
@@ -176,6 +179,11 @@ const selectChat = async (chatId) => {
   }
 }
 
+const returnToChatList = () => {
+  selectedChatId.value = null
+  chatDrawerOpen.value = false
+}
+
 const handleChatCreated = async (chat) => {
   await fetchChats({ preferredChatId: chat?.id ?? chat?.chat_id ?? chat?.chat?.id })
 }
@@ -196,7 +204,7 @@ onMounted(async () => {
 <template>
   <v-container class="chat-view" fluid>
     <v-card class="chat-shell" elevation="0" rounded="lg">
-      <aside class="chat-sidebar">
+      <aside v-show="!isMobile || !selectedChat" class="chat-sidebar">
         <div class="sidebar-header"><div><p class="section-label"></p><h1>Cotizaciones</h1></div><generate-link-quotation @created="handleChatCreated" /></div>
         <div class="chat-search-actions">
           <v-text-field
@@ -279,8 +287,15 @@ onMounted(async () => {
           </v-list-item>
         </v-list>
       </aside>
-      <section v-if="selectedChat" class="quotation-panel"><UsersQuotationView :chat-id="selectedChat.id" embedded /></section>
-      <section v-else class="quotation-panel empty-panel"><v-icon color="primary" icon="mdi-file-document-outline" size="44" /><span>Selecciona una cotización.</span></section>
+      <section v-if="selectedChat" class="quotation-panel">
+        <div v-if="isMobile" class="mobile-quotation-navigation">
+          <v-btn prepend-icon="mdi-arrow-left" variant="text" @click="returnToChatList">
+            Volver a cotizaciones
+          </v-btn>
+        </div>
+        <UsersQuotationView :chat-id="selectedChat.id" embedded />
+      </section>
+      <section v-else class="quotation-panel empty-panel desktop-empty-panel"><v-icon color="primary" icon="mdi-file-document-outline" size="44" /><span>Selecciona una cotización.</span></section>
     </v-card>
     <ChatConversationDrawer v-model="chatDrawerOpen" :access-token="authStore.accessToken" :chat="selectedChat" :user-id="userId" :user-name="authStore.user?.name || authStore.user?.email || 'Usuario'" @chat-deleted="fetchChats" />
   </v-container>
@@ -382,6 +397,57 @@ onMounted(async () => {
   min-height: 100%; margin: 0; 
 }
 @media (max-width: 900px) { .chat-view { padding: 0; }.chat-shell { display: block; height: 100dvh; }.chat-sidebar { height: 36vh; border-radius: 0; }.quotation-panel { height: 64vh; border-radius: 0; } }
+@media (max-width: 600px) {
+  .chat-view {
+    height: calc(100dvh - 64px);
+    min-height: calc(100dvh - 64px);
+  }
+
+  .chat-shell {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .chat-sidebar,
+  .quotation-panel {
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .chat-sidebar {
+    padding: 16px;
+  }
+
+  .desktop-empty-panel {
+    display: none;
+  }
+
+  .chat-list {
+    position: static;
+    flex: 1;
+    min-height: 0;
+    margin-top: 6px;
+  }
+
+  .mobile-quotation-navigation {
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    flex: 0 0 52px;
+    height: 52px;
+    padding: 6px 12px;
+    border-bottom: 1px solid rgb(var(--v-theme-border));
+    background: rgb(var(--v-theme-surface));
+  }
+
+  .quotation-panel :deep(.client-quotation-header) {
+    top: 52px;
+  }
+}
 .ranking-chip { margin-right: 6px; font-weight: 700; }
 .ranking-value { margin-left: 2px; color: rgb(var(--v-theme-primary));}
 .chat-list-item__description-row { display: flex; align-items: center; gap: 6px; min-width: 0; }

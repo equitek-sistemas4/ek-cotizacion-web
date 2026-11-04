@@ -377,8 +377,8 @@ onBeforeUnmount(closeSocket)
           </div>
         </div>
         <div class="conversation-controls">
+          <v-text-field v-if="messageSearchVisible" v-model="messageSearch" class="message-search" clearable density="compact" hide-details :loading="messageSearchLoading" placeholder="Buscar mensaje" prepend-inner-icon="mdi-magnify" variant="outlined" @update:model-value="searchMessages" />
           <div v-if="!isWhatsapp" class="conversation-actions">
-            <v-text-field v-if="messageSearchVisible" v-model="messageSearch" class="message-search" clearable density="compact" hide-details :loading="messageSearchLoading" placeholder="Buscar mensaje" prepend-inner-icon="mdi-magnify" variant="outlined" @update:model-value="searchMessages" />
             <v-btn v-if="messageSearchVisible" icon="mdi-chevron-up" size="small" variant="text" :disabled="!matchingMessages.length" @click="moveToMatch(-1)" />
             <v-btn v-if="messageSearchVisible" icon="mdi-chevron-down" size="small" variant="text" :disabled="!matchingMessages.length" @click="moveToMatch(1)" />
             <v-btn :icon="messageSearchVisible ? 'mdi-close' : 'mdi-magnify'" size="small" title="Buscar mensajes" variant="text" @click="toggleSearch" />
@@ -505,5 +505,58 @@ onBeforeUnmount(closeSocket)
 .attachment-input { display: none; }
 .attachment-preview, .send-message-error { display: flex; flex: 0 0 100%; align-items: center; gap: 6px; }
 .attachment-preview span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 600px) { .chat-fab { right: 16px; bottom: 16px; } .info-chat-fab { right: 16px; bottom: 84px; } .conversation-header { padding: 10px; } .message-search { width: 130px; } .messages-panel { padding: 12px; } }
+@media (max-width: 600px) {
+  .chat-fab { right: 16px; bottom: 16px; }
+
+  .info-chat-fab { right: 16px; bottom: 84px; }
+
+  .chat-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+
+  .chat-drawer :deep(.v-navigation-drawer__content),
+  .chat-content {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .conversation-header {
+    flex-wrap: wrap;
+    padding: 10px;
+  }
+
+  .conversation-user {
+    flex: 1 1 100%;
+  }
+
+  .conversation-controls {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .conversation-controls .message-search {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+
+  .conversation-actions {
+    flex-wrap: wrap;
+  }
+
+  .conversation-actions :deep(.pa-4) {
+    padding: 0 !important;
+  }
+
+  .messages-panel { padding: 12px; }
+
+  .message-bubble { max-width: 88%; }
+
+  .message-composer {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+}
 </style>

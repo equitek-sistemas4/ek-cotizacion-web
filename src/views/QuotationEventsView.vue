@@ -129,7 +129,7 @@ onMounted(loadQuotations)
 
 <template>
   <v-container class="quotation-events-view pa-6" fluid>
-    <div class="d-flex align-center justify-space-between mb-6">
+    <div class="quotation-events-header d-flex align-center justify-space-between mb-6">
       <div>
         <h1 class="text-h4">Actividad de cotizaciones</h1>
         <p class="text-medium-emphasis mt-1">Eventos realizados por los contactos desde la cotizacion web.</p>
@@ -174,7 +174,7 @@ onMounted(loadQuotations)
       </v-card>
 
     <v-card variant="elevated">
-      <v-table>
+      <v-table class="quotation-events-table">
         <thead>
           <tr>
             <th>Número</th>
@@ -184,7 +184,7 @@ onMounted(loadQuotations)
             <th class="text-center">Contactos</th>
             <th>Sección más vista</th>
             <th>Última interacción</th>
-            <th class="text-center">Acciones</th>
+            <th class="quotation-events-actions text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -196,7 +196,7 @@ onMounted(loadQuotations)
             <td class="text-center">{{ quotation.contacts }}</td>
             <td>{{ quotation.topSection ? formatSectionName(quotation.topSection) : 'Sin datos' }}</td>
             <td>{{ formatDate(quotation.latestInteraction?.created_at) }}</td>
-            <td class="text-center">
+            <td class="quotation-events-actions text-center">
               <v-btn
                 aria-label="Ver eventos de la cotización"
                 color="primary"
@@ -283,5 +283,43 @@ onMounted(loadQuotations)
 
 th {
   font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .quotation-events-view {
+    padding: 0 !important;
+  }
+
+  .quotation-events-header {
+    padding-top: 16px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .quotation-events-view :deep(.v-row) {
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .quotation-events-view :deep(.v-row > .v-col) {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .quotation-events-view :deep(.v-card) {
+    border-radius: 0;
+  }
+
+  .quotation-events-actions {
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    min-width: 72px;
+    background: rgb(var(--v-theme-surface));
+  }
+
+  .quotation-events-table :deep(thead .quotation-events-actions) {
+    z-index: 3;
+  }
 }
 </style>

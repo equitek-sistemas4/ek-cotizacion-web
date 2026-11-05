@@ -230,6 +230,7 @@ onBeforeUnmount(closeSocket)
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   width: 100%;
+  min-width: 0;
   height: 100%;
   overflow: hidden;
   background: rgb(var(--v-theme-surface));
@@ -244,7 +245,7 @@ onBeforeUnmount(closeSocket)
   padding: 14px 16px;
   border-bottom: 1px solid rgb(var(--v-theme-border));
 }
-.conversation-user { min-width: 0; gap: 10px; }.conversation-user > div { min-width: 0; }.conversation-actions { gap: 2px; }.message-search { width: 170px; }
+.conversation-user { min-width: 0; gap: 10px; }.conversation-user > div { min-width: 0; }.conversation-actions { min-width: 0; gap: 2px; }.message-search { width: 170px; }
 .conversation-header h2, .conversation-header p { 
   overflow: hidden;
   margin: 0;
@@ -261,6 +262,8 @@ onBeforeUnmount(closeSocket)
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   padding: 20px;
   background: linear-gradient(135deg, rgb(var(--v-theme-success) / 8%), transparent 34%), rgb(var(--v-theme-background));
@@ -279,6 +282,7 @@ onBeforeUnmount(closeSocket)
 }
 .message-row { 
   display: flex; 
+  min-width: 0;
   justify-content: flex-start; 
 }
 .message-row-sent { 
@@ -286,11 +290,14 @@ onBeforeUnmount(closeSocket)
 }
 .message-row-search-match .message-bubble { box-shadow: 0 0 0 2px rgb(var(--v-theme-warning)); }.message-row-search-active .message-bubble { box-shadow: 0 0 0 3px orangered; }
 .message-bubble { 
-  max-width: 78%; 
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: min(78%, 100%);
   padding: 10px 12px; 
   border: 1px solid rgb(var(--v-theme-border)); 
   border-radius: 8px; 
   overflow-wrap: anywhere; 
+  white-space: pre-wrap;
 }
 .message-row-sent .message-bubble { 
   border-color: rgb(var(--v-theme-success)); 
@@ -323,5 +330,35 @@ onBeforeUnmount(closeSocket)
   top: -22px; 
   left: 16px; 
   font-size: .8rem; 
+}
+
+@media (max-width: 600px) {
+  .conversation-header {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+
+  .conversation-user {
+    flex: 1 1 100%;
+  }
+
+  .conversation-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .message-search {
+    flex: 1 0 100%;
+    width: 100%;
+  }
+
+  .messages-panel {
+    padding: 12px;
+  }
+
+  .message-bubble {
+    max-width: 100%;
+  }
 }
 </style>

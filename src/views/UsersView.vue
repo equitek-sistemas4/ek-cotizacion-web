@@ -20,7 +20,6 @@
           :items="users"
           :loading="loading"
           class="users-table elevation-0"
-          style="padding: 10px"
         >
           <!--<template #item.actions="{ item }">
             <div class="d-flex gap-2">
@@ -176,7 +175,32 @@ onMounted(loadUsers)
   font-weight: 600;
 }
 
+.users-table {
+  padding: 10px;
+}
+
 .gap-2 {
   gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .users-view {
+    padding: 0 !important;
+  }
+
+  .users-view :deep(.v-container) {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .users-view :deep(.v-card) {
+    border-radius: 0;
+  }
+
+  .users-table {
+    width: 100%;
+    padding: 0;
+  }
 }
 </style>

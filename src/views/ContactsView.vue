@@ -24,7 +24,6 @@
           :items="contacts"
           :loading="loading"
           class="contacts-table elevation-0"
-          style="padding: 10px;"
         >
           <template v-slot:item.actions="{ item }">
             <div class="d-flex gap-2">
@@ -194,7 +193,32 @@ onMounted(() => {
   font-weight: 600;
 }
 
+.contacts-table {
+  padding: 10px;
+}
+
 .gap-2 {
   gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .contacts-view {
+    padding: 0 !important;
+  }
+
+  .contacts-view :deep(.v-container) {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .contacts-view :deep(.v-card) {
+    border-radius: 0;
+  }
+
+  .contacts-table {
+    width: 100%;
+    padding: 0;
+  }
 }
 </style>

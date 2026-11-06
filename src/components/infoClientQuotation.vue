@@ -129,7 +129,11 @@ const selectTab = (tab) => {
       </v-tabs>
 
       <div class="mobile-tabs-menu">
-        <v-menu v-model="mobileTabsMenu" location="bottom end">
+        <v-menu
+          v-model="mobileTabsMenu"
+          location="bottom end"
+          offset="10"
+        >
           <template #activator="{ props }">
             <v-btn
               v-bind="props"
@@ -141,48 +145,68 @@ const selectTab = (tab) => {
             />
           </template>
 
-          <v-list density="compact" min-width="190" nav>
-            <v-list-item
-              prepend-icon="mdi-home"
-              title="Inicio"
-              @click="selectTab('inicio')"
-            />
-            <v-list-item
-              prepend-icon="mdi-file-check"
-              title="Requerimientos / Alcances del Proyecto"
-              @click="selectTab('productos')"
-            />
-            <v-list-item
-              prepend-icon="mdi-laptop"
-              title="Equipos"
-              @click="selectTab('equipos')"
-            />
-            <v-list-item
-              prepend-icon="mdi-tag"
-              title="Precios, Condiciones y Garantias"
-              @click="selectTab('precios')"
-            />
-            <!--<v-list-item
-              prepend-icon="mdi-target"
-              title="Alcances"
-              @click="selectTab('alcances')"
-            />
-            <v-list-item
-              prepend-icon="mdi-file-document-check"
-              title="Condiciones"
-              @click="selectTab('condiciones')"
-            />-->
-            <v-list-item
-              prepend-icon="mdi-cash"
-              title="Analisis Financiero"
-              @click="selectTab('financiero')"
-            />
-            <v-list-item
-              prepend-icon="mdi-link"
-              title="Ligas"
-              @click="selectTab('ligas')"
-            />
-          </v-list>
+          <v-card class="mobile-tabs-menu__card" color="surface">
+            <v-list class="mobile-tabs-menu__list" density="compact" nav>
+              <v-list-item
+                :active="activeTab === 'inicio'"
+                color="primary"
+                prepend-icon="mdi-home"
+                rounded="lg"
+                title="Inicio"
+                @click="selectTab('inicio')"
+              />
+              <v-list-item
+                :active="activeTab === 'productos'"
+                color="primary"
+                prepend-icon="mdi-file-check"
+                rounded="lg"
+                title="Requerimientos / Alcances del Proyecto"
+                @click="selectTab('productos')"
+              />
+              <v-list-item
+                :active="activeTab === 'equipos'"
+                color="primary"
+                prepend-icon="mdi-laptop"
+                rounded="lg"
+                title="Equipos"
+                @click="selectTab('equipos')"
+              />
+              <v-list-item
+                :active="activeTab === 'precios'"
+                color="primary"
+                prepend-icon="mdi-tag"
+                rounded="lg"
+                title="Precios, Condiciones y Garantias"
+                @click="selectTab('precios')"
+              />
+              <!--<v-list-item
+                prepend-icon="mdi-target"
+                title="Alcances"
+                @click="selectTab('alcances')"
+              />
+              <v-list-item
+                prepend-icon="mdi-file-document-check"
+                title="Condiciones"
+                @click="selectTab('condiciones')"
+              />-->
+              <v-list-item
+                :active="activeTab === 'financiero'"
+                color="primary"
+                prepend-icon="mdi-cash"
+                rounded="lg"
+                title="Analisis Financiero"
+                @click="selectTab('financiero')"
+              />
+              <v-list-item
+                :active="activeTab === 'ligas'"
+                color="primary"
+                prepend-icon="mdi-link"
+                rounded="lg"
+                title="Ligas"
+                @click="selectTab('ligas')"
+              />
+            </v-list>
+          </v-card>
         </v-menu>
       </div>
     </header>
@@ -649,6 +673,12 @@ const selectTab = (tab) => {
     padding: 0 16px;
   }
 
+  .brand-logo {
+    width: 150px;
+    height: 120px;
+    margin-block: -20px;
+  }
+
   .quotation-tabs {
     display: none;
   }
@@ -664,6 +694,23 @@ const selectTab = (tab) => {
   .mobile-tabs-menu__button :deep(.v-icon) {
     color: #fff !important;
     opacity: 1 !important;
+  }
+
+  .mobile-tabs-menu__card {
+    width: min(320px, calc(100vw - 24px));
+    padding: 10px;
+    border: 1px solid rgba(var(--v-theme-border), 0.9);
+    border-radius: 18px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+  }
+
+  .mobile-tabs-menu__list :deep(.v-list-item) {
+    min-height: 44px;
+  }
+
+  .mobile-tabs-menu__list :deep(.v-list-item-title) {
+    white-space: normal;
+    line-height: 1.25;
   }
 
   .quotation-tabs :deep(.v-slide-group__content) {

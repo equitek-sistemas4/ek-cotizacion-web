@@ -24,9 +24,9 @@ const unreadNotificationsByChat = ref({})
 const rankingSortDirection = ref('desc')
 const chatsLoadingMore = ref(false)
 const hasMoreChats = ref(true)
-const chatLimit = ref(10)
+const chatLimit = ref(50)
 let chatsRequestId = 0
-const chatPageSize = 10
+const chatPageSize = 50
 
 const selectedChat = computed(() => chats.value.find((chat) => String(chat.id) === String(selectedChatId.value)) ?? null)
 const isMobile = computed(() => xs.value)
@@ -123,7 +123,7 @@ const fetchChats = async ({ preferredChatId = null, search = chatSearch.value, a
     hasMoreChats.value = true
   }
   try {
-    const chatParams = { search, limit: nextLimit }
+    const chatParams = { search, limit: nextLimit }//{ search, limit: nextLimit }
     if (!shouldOmitUserIdFromChats.value) {
       chatParams.user_id = userId.value
     }
@@ -303,19 +303,25 @@ onMounted(async () => {
 
 <style scoped>
 .chat-view { 
-  width: 100%; min-height: 100vh; min-height: 100dvh; padding: 24px; background: rgb(var(--v-theme-appBackground)); 
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  padding: 24px;
+  background: rgb(var(--v-theme-appBackground));
 }
 .chat-shell { 
   display: grid; 
   grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
   gap: 0;
-  height: calc(100vh - 48px); 
+  height: 100%;
+  min-height: 0;
   margin: 0 auto; 
   background: transparent; 
   border-radius: 20px;
   overflow: hidden;
 }
-.chat-sidebar, .quotation-panel { min-width: 0; background: rgb(var(--v-theme-surface)); }
+.chat-sidebar, .quotation-panel { min-width: 0; min-height: 0; background: rgb(var(--v-theme-surface)); }
 .chat-sidebar {
   position: relative;
   display: flex;

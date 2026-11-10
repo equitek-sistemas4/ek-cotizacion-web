@@ -15,7 +15,12 @@ const collapsed = ref(false)
 const mobileMenuOpen = ref(false)
 const logoUrl = logoImg
 const unreadNotifications = ref([])
+const notificationAlertVisible = ref(false)
+const notificationAlertMessage = ref('')
+const notificationAlertKey = ref(0)
 let unreadNotificationsInterval = null
+let previousUnreadNotificationKeys = new Set()
+let previousUnreadNotificationCount = 0
 
 const loggedUserName = computed(() => authStore.user?.name || authStore.user?.email || 'Usuario')
 const isDarkTheme = computed(() => theme.global.name.value === 'dark')
@@ -62,9 +67,52 @@ const unreadNotificationCounts = computed(() =>
   }, {}),
 )
 
+const getNotificationKey = (notification, index) =>
+  String(
+    notification.id ??
+      `${notification.section ?? ''}-${notification.chat_id ?? ''}-${notification.created_at ?? index}`,
+  )
+
+const notificationSectionLabels = {
+  'contact-requests': 'Solicitudes de contacto',
+}
+
+const showNotificationAlert = (notifications) => {
+  const notificationKeys = new Set(notifications.map(getNotificationKey))
+  const hasNewNotification =
+    notifications.length > previousUnreadNotificationCount ||
+    [...notificationKeys].some(
+      (notificationKey) => !previousUnreadNotificationKeys.has(notificationKey),
+    )
+
+  if (notifications.length && hasNewNotification) {
+    const sections = [
+      ...new Set(
+        notifications
+          .map((notification) => notification.section)
+          .filter((section) => typeof section === 'string' && section.trim()),
+      ),
+    ].map((section) => notificationSectionLabels[section] ?? section)
+    const sectionMessage = sections.length ? ` en ${sections.join(', ')}.` : ''
+
+    notificationAlertMessage.value =
+      notifications.length === 1
+        ? `Tienes una notificación pendiente ${sectionMessage}`
+        : `Tienes ${notifications.length} notificaciones pendientes.${sectionMessage}`
+    notificationAlertKey.value += 1
+    notificationAlertVisible.value = true
+  }
+
+  previousUnreadNotificationKeys = notificationKeys
+  previousUnreadNotificationCount = notifications.length
+}
+
 const loadUnreadNotifications = async () => {
   if (!authStore.userId) {
     unreadNotifications.value = []
+    notificationAlertVisible.value = false
+    previousUnreadNotificationKeys = new Set()
+    previousUnreadNotificationCount = 0
     return
   }
 
@@ -73,6 +121,7 @@ const loadUnreadNotifications = async () => {
     const activeSection = typeof route.name === 'string' ? route.name : null
 
     unreadNotifications.value = notifications
+    showNotificationAlert(notifications)
 
     if (!activeSection || !notifications.some((notification) => notification.section === activeSection)) {
       return
@@ -152,6 +201,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <v-snackbar
+    :key="notificationAlertKey"
+    v-model="notificationAlertVisible"
+    color="warning"
+    location="top end"
+    timeout="20000"
+  >
+    <v-icon class="mr-2" icon="mdi-bell-alert-outline" />
+    {{ notificationAlertMessage }}
+  </v-snackbar>
+
   <v-navigation-drawer
     v-if="!isMobile"
     class="app-sidebar"

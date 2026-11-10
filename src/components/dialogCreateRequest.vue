@@ -148,8 +148,10 @@ import { getChatById, getChatMemberByCode } from '@/services/chats'
 import { createContactRequest } from '@/services/contacts'
 import { createNotification } from '@/services/notifications'
 import { getQuotationInfo } from '@/services/quotations'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const authStore = useAuthStore()
 const emit = defineEmits(['contact-created'])
 const props = defineProps({
   chatId: {
@@ -180,6 +182,23 @@ const phoneCountryCodes = [
   { label: 'MX (+52)', value: '+52' },
   { label: 'EUA (+1)', value: '+1' },
 ]
+
+const sellerWhatsappByEmail = {
+  ventasmty1: '528118051729',
+  ventasmty2: '528118145405',
+  ventasmty4: '528115076621',
+  ventasmty6: '528111544467',
+  ventasmty8: '528118173622',
+  ventasmty9: '525577349468',
+  ventasmty10: '523332185912',
+  ventasmty16: '528113134506',
+}
+
+const getSellerWhatsapp = (email) => {
+  const emailUser = String(email ?? '').split('@')[0].trim().toLowerCase()
+
+  return sellerWhatsappByEmail[emailUser] ?? '528115012414'
+}
 
 const form = ref({
   name: '',
@@ -303,6 +322,7 @@ const handleCreateContact = async () => {
       contact_position: form.value.position,
       idempresa_contacto: contact.idempresa_contacto,
       fk_idempresa: contact.fk_idempresa,
+      user_phone: getSellerWhatsapp(authStore.user?.email),
       accessToken: props.accessToken,
     })
 

@@ -154,6 +154,7 @@ export const createContactRequest = async ({
   contact_position,
   idempresa_contacto,
   fk_idempresa,
+  user_phone,
   accessToken,
 }) => {
   const body = new URLSearchParams()
@@ -166,6 +167,7 @@ export const createContactRequest = async ({
   body.append('contact_position', contact_position)
   body.append('idempresa_contacto', idempresa_contacto)
   body.append('fk_idempresa', fk_idempresa)
+  body.append('user_phone', user_phone)
   const authorizationConfig = getAuthorizationConfig(accessToken)
   const response = await contactsApi.post(`/contacts/create-request`, body, {
     ...authorizationConfig,

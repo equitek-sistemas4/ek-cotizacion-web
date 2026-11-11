@@ -403,6 +403,7 @@ watch(dialog, async (isOpen) => {
                             </div>
 
                             <v-btn
+                                v-if="!hideMemberLinkActions"
                                 aria-label="Eliminar participante de chat"
                                 color="error"
                                 icon="mdi-delete-outline"

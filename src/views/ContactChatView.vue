@@ -9,6 +9,7 @@ import {
 } from '@/services/chats'
 import { createNotification } from '@/services/notifications'
 import { createQuotationEvent } from '@/services/quotation_events'
+import { getQuotationInfo } from '@/services/quotations'
 import dialogCreateRequest from '@/components/dialogCreateRequest.vue'
 import infoChatMembers from '@/components/infoChatMembers.vue'
 import infoClientQuotation from '@/components/infoClientQuotation.vue'
@@ -36,8 +37,19 @@ const chatOpen = ref(false)
 const quotationId = ref(null)
 const membersDialogOpen = ref(false)
 const infoChatMembersKey = ref(0)
+const sellerWhatsapp = ref('528115012414')
+const sellerUsername = ref('')
 let reconnectTimer = null
 let quotationOpenRegistered = false
+let advisorLookupTimer = null
+let advisorContactOptionsTimer = null
+let awaitingAdvisorResponse = false
+
+const ADVISOR_LOOKUP_DELAY = 15 * 1000
+const ADVISOR_CONTACT_OPTIONS_DELAY = 3 * 60 * 1000
+const MEETING_URL = 'https://meetings.hubspot.com/msujo'
+const ADVISOR_LOOKUP_MESSAGE = 'Estamos localizando a tu asesor comercial. En breve te atenderemos.'
+const ADVISOR_CONTACT_OPTIONS_MESSAGE = 'Gracias por su mensaje. Para dar seguimiento a su consulta, puede contactar a su asesor por:'
 
 const chatTitle = computed(() => chat.value?.name + (chat.value?.quotation_id ? ` #${chat.value.quotation_id}` : '') || 'Chat')
 const chatDescription = computed(() => chat.value?.description || '')
@@ -50,6 +62,51 @@ const contactName = computed(() => {
     member?.contact?.name || member?.contact_name || member?.contact?.display_name || 'Contacto'
   )
 })
+
+const sellerWhatsappByEmail = {
+  ventasmty1: '528118051729',
+  ventasmty2: '528118145405',
+  ventasmty4: '528115076621',
+  ventasmty6: '528111544467',
+  ventasmty8: '528118173622',
+  ventasmty9: '525577349468',
+  ventasmty10: '523332185912',
+  ventasmty16: '528113134506',
+}
+
+const getSellerWhatsapp = (email) => {
+  const emailUser = String(email ?? '').split('@')[0].trim().toLowerCase()
+
+  return sellerWhatsappByEmail[emailUser] ?? '528115012414'
+}
+
+const formatSellerWhatsapp = (phoneNumber) => {
+  const localNumber = String(phoneNumber ?? '').replace(/\D/g, '').replace(/^52/, '')
+
+  return localNumber.length === 10
+    ? `${localNumber.slice(0, 2)} ${localNumber.slice(2, 6)} ${localNumber.slice(6)}`
+    : localNumber
+}
+
+const loadSellerWhatsapp = async () => {
+  if (!quotationId.value) {
+    return
+  }
+
+  try {
+    const quotationData = await getQuotationInfo(quotationId.value, { accessToken: token.value })
+    const seller = String(quotationData?.quotation_info?.usuario ?? '').trim().toLowerCase()
+
+    if (!seller) {
+      return
+    }
+
+    sellerUsername.value = seller
+    sellerWhatsapp.value = getSellerWhatsapp(seller)
+  } catch (error) {
+    console.error('No se pudo obtener el WhatsApp del asesor:', error)
+  }
+}
 
 /*const getQuotationId = (...sources) => {
   for (const source of sources) {
@@ -213,7 +270,76 @@ const appendIncomingMessage = async (activeChatId, messageItem) => {
   }
 
   messages.value.push(newMessage)
+
+  if (!newMessage.fromMe && !newMessage.isSystem) {
+    awaitingAdvisorResponse = false
+    clearAdvisorLookupTimer()
+  }
+
   await scrollMessagesToBottom()
+}
+
+const clearAdvisorLookupTimer = () => {
+  if (advisorLookupTimer) {
+    clearTimeout(advisorLookupTimer)
+    advisorLookupTimer = null
+  }
+
+  if (advisorContactOptionsTimer) {
+    clearTimeout(advisorContactOptionsTimer)
+    advisorContactOptionsTimer = null
+  }
+}
+
+const scheduleAdvisorLookupNotice = () => {
+  if (awaitingAdvisorResponse) {
+    return
+  }
+
+  awaitingAdvisorResponse = true
+  clearAdvisorLookupTimer()
+  advisorLookupTimer = window.setTimeout(async () => {
+    advisorLookupTimer = null
+
+    if (!awaitingAdvisorResponse) {
+      return
+    }
+
+    messages.value.push({
+      id: `advisor-lookup-${Date.now()}`,
+      text: ADVISOR_LOOKUP_MESSAGE,
+      time: formatChatTime(new Date()),
+      fromMe: false,
+      senderName: '',
+      sender: { type: 'system' },
+      files: [],
+      isSystem: true,
+    })
+    await scrollMessagesToBottom()
+  }, ADVISOR_LOOKUP_DELAY)
+
+  advisorContactOptionsTimer = window.setTimeout(async () => {
+    advisorContactOptionsTimer = null
+
+    if (!awaitingAdvisorResponse) {
+      return
+    }
+
+    messages.value.push({
+      id: `advisor-contact-options-${Date.now()}`,
+      text: ADVISOR_CONTACT_OPTIONS_MESSAGE,
+      time: formatChatTime(new Date()),
+      fromMe: false,
+      senderName: '',
+      sender: { type: 'system' },
+      files: [],
+      isSystem: true,
+      whatsappUrl: `https://wa.me/${sellerWhatsapp.value}`,
+      whatsappNumber: formatSellerWhatsapp(sellerWhatsapp.value),
+      meetingUrl: sellerUsername.value === 'ventasmty1' ? MEETING_URL : '',
+    })
+    await scrollMessagesToBottom()
+  }, ADVISOR_CONTACT_OPTIONS_DELAY)
 }
 
 const clearReconnectTimer = () => {
@@ -284,6 +410,8 @@ const loadChat = async () => {
     userId.value = chatMember?.user_id ?? null
     token.value = chatMember?.access_token ?? chatMember?.accessToken ?? chatMember?.token ?? null
     quotationId.value = chatMember?.quotation_id ?? null
+
+    await loadSellerWhatsapp()
 
     if (!quotationOpenRegistered && quotationId.value && contactId.value) {
       quotationOpenRegistered = true
@@ -387,6 +515,8 @@ const sendMessage = async () => {
       accessToken: token.value,
     })
 
+    scheduleAdvisorLookupNotice()
+
     message.value = ''
     clearAttachment()
   } catch (error) {
@@ -412,6 +542,7 @@ watch(chatOpen, (isOpen) => {
 
 onBeforeUnmount(() => {
   closeChatWebSocket()
+  clearAdvisorLookupTimer()
 })
 </script>
 
@@ -526,9 +657,50 @@ onBeforeUnmount(() => {
               v-for="item in messages"
               :key="item.id"
               class="message-row"
-              :class="{ 'message-row-sent': item.fromMe }"
+              :class="{ 'message-row-sent': item.fromMe, 'message-row-system': item.isSystem }"
             >
-              <div class="message-bubble">
+              <div
+                v-if="item.isSystem"
+                class="system-message"
+                :class="{ 'system-message--contact-options': item.whatsappUrl || item.meetingUrl }"
+                role="status"
+              >
+                <v-icon icon="mdi-information-outline" size="18" />
+                <div class="system-message-content">
+                  <span v-if="item.whatsappUrl || item.meetingUrl" class="system-message-eyebrow">
+                    Atención inmediata
+                  </span>
+                  <p>{{ item.text }}</p>
+                  <div
+                    v-if="item.whatsappUrl || item.meetingUrl"
+                    class="system-message-actions"
+                    :class="{ 'system-message-actions--single': !item.meetingUrl }"
+                  >
+                    <a
+                      v-if="item.whatsappUrl"
+                      class="system-message-action"
+                      :href="item.whatsappUrl"
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      <v-icon icon="mdi-whatsapp" size="18" />
+                      <span>WhatsApp {{ item.whatsappNumber }}</span>
+                    </a>
+                    <a
+                      v-if="item.meetingUrl"
+                      class="system-message-action"
+                      :href="item.meetingUrl"
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      <v-icon icon="mdi-calendar-outline" size="18" />
+                      <span>Agendar reunión</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="message-bubble">
                 <small>{{ item.senderName }}</small>
                 <p>{{ item.text }}</p>
                 <div v-if="item.files.length" class="message-attachments">
@@ -765,6 +937,105 @@ onBeforeUnmount(() => {
 
 .message-row-sent {
   justify-content: flex-end;
+}
+
+.message-row-system {
+  justify-content: center;
+}
+
+.system-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(90%, 560px);
+  padding: 8px 12px;
+  border: 1px solid rgb(var(--v-theme-primary) / 28%);
+  border-radius: 12px;
+  background: rgb(var(--v-theme-primary) / 10%);
+  color: rgb(var(--v-theme-textMuted));
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.system-message p {
+  margin: 0;
+}
+
+.system-message--contact-options {
+  align-items: flex-start;
+  max-width: min(92%, 520px);
+  padding: 16px;
+  border-color: rgb(var(--v-theme-primary) / 40%);
+  background: linear-gradient(135deg, rgb(var(--v-theme-primary) / 18%), rgb(var(--v-theme-surface)) 75%);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 10%);
+  color: rgb(var(--v-theme-textPrimary));
+  text-align: left;
+}
+
+.system-message--contact-options > .v-icon {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  color: rgb(var(--v-theme-primary));
+}
+
+.system-message-content {
+  min-width: 0;
+}
+
+.system-message-eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: rgb(var(--v-theme-primary));
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.system-message-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.system-message-actions--single {
+  grid-template-columns: 1fr;
+}
+
+.system-message-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgb(var(--v-theme-success));
+  color: rgb(var(--v-theme-surface));
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.system-message-action + .system-message-action {
+  background: rgb(var(--v-theme-primary));
+}
+
+.system-message-action:hover,
+.system-message-action:focus-visible {
+  box-shadow: 0 4px 10px rgb(0 0 0 / 18%);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 430px) {
+  .system-message-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .message-bubble {

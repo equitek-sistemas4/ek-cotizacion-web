@@ -9,6 +9,14 @@ export const getUsers = async () => {
     return Array.isArray(response.data?.data) ? response.data.data : []
 }
 
+export const getUser = async ({ user_id, accessToken } = {}) => {
+    const response = await usersApi.get(`/users/${encodeURIComponent(user_id)}`, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    })
+
+    return response.data?.data ?? response.data
+}
+
 
 export const createUser = async ({
     name,

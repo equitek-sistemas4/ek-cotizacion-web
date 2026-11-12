@@ -34,12 +34,16 @@ const sendMessageError = ref('')
 const messagesPanel = ref(null)
 const chatSocket = ref(null)
 const chatOpen = ref(false)
+const realtimeConnectionState = ref('')
 const quotationId = ref(null)
 const membersDialogOpen = ref(false)
 const infoChatMembersKey = ref(0)
 const sellerWhatsapp = ref('528115012414')
 const sellerUsername = ref('')
 let reconnectTimer = null
+let reconnectAttempt = 0
+let chatSocketGeneration = 0
+let chatViewUnmounted = false
 let quotationOpenRegistered = false
 let advisorLookupTimer = null
 let advisorContactOptionsTimer = null
@@ -47,6 +51,9 @@ let awaitingAdvisorResponse = false
 
 const ADVISOR_LOOKUP_DELAY = 15 * 1000
 const ADVISOR_CONTACT_OPTIONS_DELAY = 3 * 60 * 1000
+const SOCKET_RECONNECT_INITIAL_DELAY = 1000
+const SOCKET_RECONNECT_MAX_DELAY = 30 * 1000
+const SOCKET_MAX_RECONNECT_ATTEMPTS = 8
 const MEETING_URL = 'https://meetings.hubspot.com/msujo'
 const ADVISOR_LOOKUP_MESSAGE = 'Estamos localizando a tu asesor comercial. En breve te atenderemos.'
 const ADVISOR_CONTACT_OPTIONS_MESSAGE = 'Gracias por su mensaje. Para dar seguimiento a su consulta, puede contactar a su asesor por:'
@@ -349,33 +356,123 @@ const clearReconnectTimer = () => {
   }
 }
 
+const isSocketReady = (socket) =>
+  socket?.readyState === WebSocket.OPEN || socket?.readyState === WebSocket.CONNECTING
+
+const isActiveChatSocketContext = ({ id, accessToken }) =>
+  !chatViewUnmounted &&
+  chatOpen.value &&
+  Boolean(chatId.value) &&
+  Boolean(token.value) &&
+  String(chatId.value) === String(id) &&
+  token.value === accessToken
+
 const closeChatWebSocket = () => {
+  chatSocketGeneration += 1
+  clearReconnectTimer()
+  reconnectAttempt = 0
+  realtimeConnectionState.value = ''
+
+  if (chatSocket.value) {
+    chatSocket.value.__manuallyClosed = true
+    chatSocket.value.close()
+    chatSocket.value = null
+  }
+}
+
+const scheduleChatReconnect = (context) => {
+  if (!isActiveChatSocketContext(context) || reconnectTimer) {
+    return
+  }
+
+  if (reconnectAttempt >= SOCKET_MAX_RECONNECT_ATTEMPTS) {
+    realtimeConnectionState.value = 'failed'
+    return
+  }
+
+  const baseDelay = Math.min(
+    SOCKET_RECONNECT_INITIAL_DELAY * 2 ** reconnectAttempt,
+    SOCKET_RECONNECT_MAX_DELAY,
+  )
+  const jitter = Math.round(baseDelay * (Math.random() * 0.4 - 0.2))
+  const delay = Math.max(0, baseDelay + jitter)
+
+  reconnectAttempt += 1
+  realtimeConnectionState.value = 'reconnecting'
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = null
+    connectChatWebSocket()
+  }, delay)
+}
+
+const handleUnexpectedSocketFailure = (socket, generation, context) => {
+  if (
+    generation !== chatSocketGeneration ||
+    socket.__manuallyClosed ||
+    !isActiveChatSocketContext(context)
+  ) {
+    return
+  }
+
+  if (chatSocket.value === socket) {
+    chatSocket.value = null
+  }
+
+  scheduleChatReconnect(context)
+}
+
+const connectChatWebSocket = () => {
+  if (!chatOpen.value || !chatId.value || !token.value || chatViewUnmounted) {
+    return
+  }
+
+  if (isSocketReady(chatSocket.value)) {
+    return
+  }
+
+  clearReconnectTimer()
+
   if (chatSocket.value) {
     chatSocket.value.__manuallyClosed = true
     chatSocket.value.close()
     chatSocket.value = null
   }
 
-  clearReconnectTimer()
-}
+  const context = { id: chatId.value, accessToken: token.value }
+  const generation = ++chatSocketGeneration
+  let socket
 
-const connectChatWebSocket = () => {
-  clearReconnectTimer()
-  closeChatWebSocket()
-
-  if (!chatId.value || !token.value) {
+  try {
+    socket = new WebSocket(getChatWebSocketUrl())
+  } catch {
+    scheduleChatReconnect(context)
     return
   }
 
-  const socket = new WebSocket(getChatWebSocketUrl())
   socket.__manuallyClosed = false
   chatSocket.value = socket
 
   socket.onopen = () => {
+    if (
+      generation !== chatSocketGeneration ||
+      chatSocket.value !== socket ||
+      !isActiveChatSocketContext(context)
+    ) {
+      socket.__manuallyClosed = true
+      socket.close()
+      return
+    }
+
     clearReconnectTimer()
+    reconnectAttempt = 0
+    realtimeConnectionState.value = ''
   }
 
   socket.onmessage = (event) => {
+    if (generation !== chatSocketGeneration || chatSocket.value !== socket) {
+      return
+    }
+
     try {
       const eventData = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
       appendIncomingMessage(chatId.value, getIncomingMessagePayload(eventData))
@@ -385,17 +482,51 @@ const connectChatWebSocket = () => {
   }
 
   socket.onerror = () => {
-    errorMessage.value = 'Se perdio la conexion en tiempo real del chat.'
+    handleUnexpectedSocketFailure(socket, generation, context)
   }
 
-  socket.onclose = () => {
-    if (chatSocket.value === socket && !socket.__manuallyClosed) {
-      chatSocket.value = null
-      reconnectTimer = window.setTimeout(() => {
-        connectChatWebSocket()
-      }, 1200)
+  socket.onclose = (event) => {
+    if (generation !== chatSocketGeneration || socket.__manuallyClosed) {
+      return
     }
+
+    if (chatSocket.value === socket) {
+      chatSocket.value = null
+    }
+
+    if (event.code === 1008) {
+      clearReconnectTimer()
+      realtimeConnectionState.value = 'failed'
+      return
+    }
+
+    scheduleChatReconnect(context)
   }
+}
+
+const ensureChatWebSocket = ({ resetAttempts = false } = {}) => {
+  if (!chatOpen.value || chatViewUnmounted) {
+    return
+  }
+
+  if (resetAttempts) {
+    reconnectAttempt = 0
+    realtimeConnectionState.value = ''
+  }
+
+  if (!isSocketReady(chatSocket.value)) {
+    connectChatWebSocket()
+  }
+}
+
+const handleChatVisibilityChange = () => {
+  if (document.visibilityState === 'visible') {
+    ensureChatWebSocket()
+  }
+}
+
+const handleChatOnline = () => {
+  ensureChatWebSocket({ resetAttempts: realtimeConnectionState.value === 'failed' })
 }
 
 const loadChat = async () => {
@@ -405,10 +536,20 @@ const loadChat = async () => {
 
   try {
     const chatMember = await getChatMemberByCode(access_code.value)
-    chatId.value = chatMember?.chat_id ?? null
+    const nextChatId = chatMember?.chat_id ?? null
+    const nextToken = chatMember?.access_token ?? chatMember?.accessToken ?? chatMember?.token ?? null
+
+    if (
+      chatId.value &&
+      (String(chatId.value) !== String(nextChatId) || token.value !== nextToken)
+    ) {
+      closeChatWebSocket()
+    }
+
+    chatId.value = nextChatId
     contactId.value = chatMember?.contact_id ?? null
     userId.value = chatMember?.user_id ?? null
-    token.value = chatMember?.access_token ?? chatMember?.accessToken ?? chatMember?.token ?? null
+    token.value = nextToken
     quotationId.value = chatMember?.quotation_id ?? null
 
     await loadSellerWhatsapp()
@@ -527,12 +668,14 @@ const sendMessage = async () => {
 }
 
 onMounted(() => {
+  window.addEventListener('online', handleChatOnline)
+  document.addEventListener('visibilitychange', handleChatVisibilityChange)
   loadChat()
 })
 
 watch(chatOpen, (isOpen) => {
   if (isOpen) {
-    connectChatWebSocket()
+    ensureChatWebSocket()
     scrollMessagesToBottom()
     return
   }
@@ -541,6 +684,9 @@ watch(chatOpen, (isOpen) => {
 })
 
 onBeforeUnmount(() => {
+  chatViewUnmounted = true
+  window.removeEventListener('online', handleChatOnline)
+  document.removeEventListener('visibilitychange', handleChatVisibilityChange)
   closeChatWebSocket()
   clearAdvisorLookupTimer()
 })
@@ -637,6 +783,22 @@ onBeforeUnmount(() => {
         </header>
 
         <div ref="messagesPanel" class="messages-panel">
+          <v-alert
+            v-if="realtimeConnectionState"
+            class="realtime-connection-status"
+            :color="realtimeConnectionState === 'failed' ? 'error' : 'warning'"
+            :icon="realtimeConnectionState === 'failed' ? 'mdi-alert-circle-outline' : 'mdi-sync'"
+            density="compact"
+            role="status"
+            variant="tonal"
+          >
+            {{
+              realtimeConnectionState === 'failed'
+                ? 'Se perdió la conexión en tiempo real del chat.'
+                : 'Reconectando el chat…'
+            }}
+          </v-alert>
+
           <div v-if="loading" class="chat-state">
             <v-progress-circular color="primary" indeterminate size="30" />
             <span>Cargando chat...</span>
@@ -913,6 +1075,10 @@ onBeforeUnmount(() => {
   background:
     linear-gradient(135deg, rgb(var(--v-theme-primary) / 8%), transparent 34%),
     rgb(var(--v-theme-background));
+}
+
+.realtime-connection-status {
+  flex: 0 0 auto;
 }
 
 .chat-state {

@@ -1,5 +1,6 @@
 <script setup>
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useTheme } from 'vuetify'
 import logoUrl from '@/assets/Equitek_Logo.webp'
 import isoLogoUrl from '@/assets/logo-iso.png'
 import conditionsQuotationComponent from '@/components/conditionsQuotationComponent.vue'
@@ -20,11 +21,17 @@ const props = defineProps({
   contactId: { type: [Number, String], default: null },
   quotationId: { type: [Number, String], default: null },
   accessToken: { type: String, default: '' },
+  showMobileThemeToggle: { type: Boolean, default: false },
 })
 
+const theme = useTheme()
 const activeTab = ref('inicio')
 const mobileTabsMenu = ref(false)
 const initialSectionRegistration = ref('')
+const isDarkTheme = computed(() => theme.global.name.value === 'dark')
+const themeToggleLabel = computed(() =>
+  isDarkTheme.value ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
+)
 
 const sectionKeys = {
   inicio: 'inicio',
@@ -77,6 +84,14 @@ const selectTab = (tab) => {
   activeTab.value = tab
   mobileTabsMenu.value = false
   registerSectionOpen(tab)
+}
+
+const toggleTheme = () => {
+  const nextTheme = isDarkTheme.value ? 'light' : 'dark'
+
+  theme.global.name.value = nextTheme
+  localStorage.setItem('theme', nextTheme)
+  mobileTabsMenu.value = false
 }
 </script>
 
@@ -204,6 +219,13 @@ const selectTab = (tab) => {
                 rounded="lg"
                 title="Ligas"
                 @click="selectTab('ligas')"
+              />
+              <v-list-item
+                v-if="showMobileThemeToggle"
+                :prepend-icon="isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+                rounded="lg"
+                :title="themeToggleLabel"
+                @click="toggleTheme"
               />
             </v-list>
           </v-card>

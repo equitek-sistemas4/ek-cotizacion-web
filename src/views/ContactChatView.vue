@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useTheme } from 'vuetify'
 import {
   getChatById,
   getChatMessages,
@@ -15,6 +16,7 @@ import infoChatMembers from '@/components/infoChatMembers.vue'
 import infoClientQuotation from '@/components/infoClientQuotation.vue'
 
 const route = useRoute()
+const theme = useTheme()
 
 const access_code = computed(() => route.params.access_code)
 
@@ -60,6 +62,17 @@ const ADVISOR_CONTACT_OPTIONS_MESSAGE = 'Gracias por su mensaje. Para dar seguim
 
 const chatTitle = computed(() => chat.value?.name + (chat.value?.quotation_id ? ` #${chat.value.quotation_id}` : '') || 'Chat')
 const chatDescription = computed(() => chat.value?.description || '')
+const isDarkTheme = computed(() => theme.global.name.value === 'dark')
+const themeToggleLabel = computed(() =>
+  isDarkTheme.value ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro',
+)
+
+const toggleTheme = () => {
+  const nextTheme = isDarkTheme.value ? 'light' : 'dark'
+
+  theme.global.name.value = nextTheme
+  localStorage.setItem('theme', nextTheme)
+}
 
 const contactName = computed(() => {
   const members = chat.value?.members ?? []
@@ -668,6 +681,12 @@ const sendMessage = async () => {
 }
 
 onMounted(() => {
+  const storedTheme = localStorage.getItem('theme')
+
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    theme.global.name.value = storedTheme
+  }
+
   window.addEventListener('online', handleChatOnline)
   document.addEventListener('visibilitychange', handleChatVisibilityChange)
   loadChat()
@@ -703,6 +722,16 @@ onBeforeUnmount(() => {
       :contact-id="contactId"
       :quotation-id="quotationId"
       :access-token="token"
+      show-mobile-theme-toggle
+    />
+
+    <v-btn
+      class="theme-toggle"
+      :aria-label="themeToggleLabel"
+      :icon="isDarkTheme ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+      :title="themeToggleLabel"
+      variant="outlined"
+      @click="toggleTheme"
     />
 
     <v-btn
@@ -983,6 +1012,16 @@ onBeforeUnmount(() => {
   right: 24px;
   bottom: 24px;
   z-index: 10;
+}
+
+.theme-toggle {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 1100;
+  border-color: rgb(var(--v-theme-border));
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-primary));
 }
 
 .chat-drawer :deep(.v-navigation-drawer__content) {
@@ -1331,6 +1370,10 @@ onBeforeUnmount(() => {
 @media (max-width: 700px) {
   .contact-chat-view {
     padding: 16px;
+  }
+
+  .theme-toggle {
+    display: none;
   }
 
   .chat-content {

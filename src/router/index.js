@@ -29,7 +29,7 @@ const router = createRouter({
       },
     },
     {
-      path: '/whatsapp',
+      path: '/chat-whatsapp',
       name: 'whatsapp',
       component: () => import('../views/WhatsappView.vue'),
       meta: {

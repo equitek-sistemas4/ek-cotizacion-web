@@ -75,6 +75,7 @@ const getNotificationKey = (notification, index) =>
 
 const notificationSectionLabels = {
   'contact-requests': 'Solicitudes de contacto',
+  whatsapp: 'WhatsApp',
 }
 
 const showNotificationAlert = (notifications) => {
@@ -95,10 +96,21 @@ const showNotificationAlert = (notifications) => {
     ].map((section) => notificationSectionLabels[section] ?? section)
     const sectionMessage = sections.length ? ` en ${sections.join(', ')}.` : ''
 
-    notificationAlertMessage.value =
-      notifications.length === 1
-        ? `Tienes una notificación pendiente ${sectionMessage}`
-        : `Tienes ${notifications.length} notificaciones pendientes.${sectionMessage}`
+    const onlyWhatsappNotifications = notifications.every(
+      (notification) => notification.section === 'whatsapp',
+    )
+
+    if (onlyWhatsappNotifications) {
+      notificationAlertMessage.value =
+        notifications.length === 1
+          ? 'Tienes un mensaje pendiente de WhatsApp.'
+          : `Tienes ${notifications.length} mensajes pendientes de WhatsApp.`
+    } else {
+      notificationAlertMessage.value =
+        notifications.length === 1
+          ? `Tienes una notificación pendiente ${sectionMessage}`
+          : `Tienes ${notifications.length} notificaciones pendientes.${sectionMessage}`
+    }
     notificationAlertKey.value += 1
     notificationAlertVisible.value = true
   }
@@ -123,7 +135,11 @@ const loadUnreadNotifications = async () => {
     unreadNotifications.value = notifications
     showNotificationAlert(notifications)
 
-    if (!activeSection || !notifications.some((notification) => notification.section === activeSection)) {
+    if (
+      !activeSection ||
+      activeSection === 'whatsapp' ||
+      !notifications.some((notification) => notification.section === activeSection)
+    ) {
       return
     }
 
@@ -246,7 +262,7 @@ onBeforeUnmount(() => {
         <span class="user-identity__name">{{ loggedUserName }}</span>
       </div>
 
-      <br>
+      <br />
 
       <v-list class="nav-list" density="compact" nav>
         <v-list-item
@@ -271,8 +287,6 @@ onBeforeUnmount(() => {
       </v-list>
 
       <v-spacer />
-
-      
 
       <v-list class="logout-list" density="compact" nav>
         <v-list-item
